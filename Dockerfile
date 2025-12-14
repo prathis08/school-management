@@ -4,20 +4,17 @@ FROM node:18-alpine
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
+# Copy package.json and package-lock.json first for better caching
 COPY package*.json ./
 
-# Copy workspace package.json files for better caching
-COPY modules/*/package*.json ./modules/*/
+# Copy all workspace files (needed for npm workspaces)
+COPY modules/ ./modules/
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including workspaces)
+RUN npm install --omit=dev
 
 # Copy the rest of the application code
 COPY . .
-
-# Install module dependencies using workspaces
-RUN npm run install-modules
 
 # Create a non-root user to run the application
 RUN addgroup -g 1001 -S nodejs && \
