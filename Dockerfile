@@ -31,9 +31,9 @@ EXPOSE 50501
 ENV NODE_ENV=production
 ENV PORT=50501
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:50501/health || exit 1
+# Health check (remove if no health endpoint exists)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:50501/health || exit 1
 
 # Command to run the application
 CMD ["npm", "start"]
