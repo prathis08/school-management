@@ -1,0 +1,526 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "studentId": "STU12345",
+    "SchoolId": "SCHDUMMY543265001",
+    "name": "Alice Johnson",
+    "firstName": "Alice",
+    "lastName": "Johnson",
+    "email": "alice.johnson@student.com",
+    "phone": "+1 234 567 8901",
+    "grade": "Grade 12",
+    "class": "12-A",
+    "rollNumber": "2024001",
+    "dateOfBirth": "2006-05-15",
+    "gender": "FEMALE",
+    "parentDetails": {
+      "fatherName": "Robert Johnson",
+      "fatherPhone": "+1 234 567 8900",
+      "fathersOccupation": "Engineer",
+      "motherName": "Laura Johnson",
+      "motherPhone": "+1 234 567 8901",
+      "mothersOccupation": "Teacher"
+    },
+    "guardianName": "Robert Johnson",
+    "guardianPhone": "+1 234 567 8900",
+    "emergencyContact": {
+      "name": "Robert Johnson",
+      "phone": "+1 234 567 8900",
+      "relation": "Father"
+    },
+    "address": {
+      "street": "123 Main St",
+      "city": "Springfield",
+      "state": "IL",
+      "zipCode": "62701",
+      "country": "USA"
+    },
+    "admissionDate": "2020-08-15",
+    "enrollmentDate": "2020-08-15",
+    "status": "Active",
+    "isActive": true,
+    "subjects": 6,
+    "attendance": 95,
+    "documents": {
+      "photo": {
+        "name": "alice_johnson_photo.jpg",
+        "uploadDate": "2020-08-10",
+        "size": "245 KB"
+      },
+      "birthCertificate": {
+        "name": "alice_birth_certificate.pdf",
+        "uploadDate": "2020-08-10",
+        "size": "1.2 MB"
+      },
+      "previousSchoolCertificate": {
+        "name": "alice_previous_school_cert.pdf",
+        "uploadDate": "2020-08-10",
+        "size": "850 KB"
+      },
+      "transferCertificate": {
+        "name": "alice_transfer_certificate.pdf",
+        "uploadDate": "2020-08-10",
+        "size": "720 KB"
+      },
+      "medicalCertificate": {
+        "name": "alice_medical_certificate.pdf",
+        "uploadDate": "2020-08-10",
+        "size": "320 KB"
+      },
+      "otherDocuments": [
+        {
+          "name": "vaccination_record.pdf",
+          "uploadDate": "2020-08-10",
+          "size": "180 KB"
+        },
+        {
+          "name": "character_certificate.pdf",
+          "uploadDate": "2020-08-10",
+          "size": "95 KB"
+        }
+      ]
+    },
+    "academicPerformance": {
+      "currentGPA": 3.8,
+      "previousYearGPA": 3.7,
+      "rank": 5,
+      "totalStudentsInClass": 45
+    },
+    "previousSchool": {
+      "name": "Springfield Elementary",
+      "lastGrade": "Grade 11",
+      "address": "789 School St, Springfield, IL",
+      "board": "CBSE",
+      "reasonForLeaving": "Family relocation"
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "studentId": "STU12346",
+    "SchoolId": "SCHDUMMY543265001",
+    "name": "Bob Smith",
+    "firstName": "Bob",
+    "lastName": "Smith",
+    "email": "bob.smith@student.com",
+    "phone": "+1 234 567 8902",
+    "grade": "Grade 11",
+    "class": "11-B",
+    "rollNumber": "2024002",
+    "dateOfBirth": "2007-03-22",
+    "gender": "MALE",
+    "parentDetails": {
+      "fatherName": "Michael Smith",
+      "fatherPhone": "+1 234 567 8903",
+      "fathersOccupation": "Doctor",
+      "motherName": "Sarah Smith",
+      "motherPhone": "+1 234 567 8904",
+      "mothersOccupation": "Nurse"
+    },
+    "guardianName": "Michael Smith",
+    "guardianPhone": "+1 234 567 8903",
+    "emergencyContact": {
+      "name": "Michael Smith",
+      "phone": "+1 234 567 8903",
+      "relation": "Father"
+    },
+    "address": {
+      "street": "456 Oak Ave",
+      "city": "Springfield",
+      "state": "IL",
+      "zipCode": "62702",
+      "country": "USA"
+    },
+    "admissionDate": "2021-08-15",
+    "enrollmentDate": "2021-08-15",
+    "status": "Active",
+    "isActive": true,
+    "subjects": 6,
+    "attendance": 88,
+    "documents": {
+      "photo": {
+        "name": "bob_smith_photo.jpg",
+        "uploadDate": "2021-08-10",
+        "size": "198 KB"
+      },
+      "birthCertificate": {
+        "name": "bob_birth_certificate.pdf",
+        "uploadDate": "2021-08-10",
+        "size": "1.1 MB"
+      },
+      "transferCertificate": {
+        "name": "bob_transfer_certificate.pdf",
+        "uploadDate": "2021-08-10",
+        "size": "650 KB"
+      },
+      "medicalCertificate": {
+        "name": "bob_medical_certificate.pdf",
+        "uploadDate": "2021-08-10",
+        "size": "280 KB"
+      },
+      "otherDocuments": [
+        {
+          "name": "sports_certificate.pdf",
+          "uploadDate": "2021-08-10",
+          "size": "340 KB"
+        }
+      ]
+    },
+    "academicPerformance": {
+      "currentGPA": 3.5,
+      "previousYearGPA": 3.4,
+      "rank": 12,
+      "totalStudentsInClass": 42
+    },
+    "previousSchool": {
+      "name": "Lincoln High School",
+      "lastGrade": "Grade 10",
+      "address": "456 Education Blvd, Springfield, IL",
+      "board": "State Board",
+      "reasonForLeaving": "Better academic opportunities"
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440003",
+    "studentId": "STU12347",
+    "SchoolId": "SCHDUMMY543265001",
+    "name": "Carol Davis",
+    "firstName": "Carol",
+    "lastName": "Davis",
+    "email": "carol.davis@student.com",
+    "phone": "+1 234 567 8905",
+    "grade": "Grade 10",
+    "class": "10-A",
+    "rollNumber": "2024003",
+    "dateOfBirth": "2008-11-10",
+    "gender": "FEMALE",
+    "parentDetails": {
+      "fatherName": "David Davis",
+      "fatherPhone": "+1 234 567 8906",
+      "fathersOccupation": "Lawyer",
+      "motherName": "Emma Davis",
+      "motherPhone": "+1 234 567 8907",
+      "mothersOccupation": "Accountant"
+    },
+    "guardianName": "David Davis",
+    "guardianPhone": "+1 234 567 8906",
+    "emergencyContact": {
+      "name": "David Davis",
+      "phone": "+1 234 567 8906",
+      "relation": "Father"
+    },
+    "address": {
+      "street": "789 Pine Rd",
+      "city": "Springfield",
+      "state": "IL",
+      "zipCode": "62703",
+      "country": "USA"
+    },
+    "admissionDate": "2022-08-15",
+    "enrollmentDate": "2022-08-15",
+    "status": "Active",
+    "isActive": true,
+    "subjects": 6,
+    "attendance": 92
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440004",
+    "studentId": "STU12348",
+    "SchoolId": "SCHDUMMY543265001",
+    "name": "Daniel Wilson",
+    "firstName": "Daniel",
+    "lastName": "Wilson",
+    "email": "daniel.wilson@student.com",
+    "phone": "+1 234 567 8908",
+    "grade": "Grade 9",
+    "class": "9-C",
+    "rollNumber": "2024004",
+    "dateOfBirth": "2009-07-18",
+    "gender": "MALE",
+    "parentDetails": {
+      "fatherName": "James Wilson",
+      "fatherPhone": "+1 234 567 8909",
+      "fathersOccupation": "Mechanic",
+      "motherName": "Lisa Wilson",
+      "motherPhone": "+1 234 567 8910",
+      "mothersOccupation": "Pharmacist"
+    },
+    "guardianName": "James Wilson",
+    "guardianPhone": "+1 234 567 8909",
+    "emergencyContact": {
+      "name": "James Wilson",
+      "phone": "+1 234 567 8909",
+      "relation": "Father"
+    },
+    "address": {
+      "street": "321 Elm St",
+      "city": "Springfield",
+      "state": "IL",
+      "zipCode": "62704",
+      "country": "USA"
+    },
+    "admissionDate": "2023-08-15",
+    "enrollmentDate": "2023-08-15",
+    "status": "Active",
+    "isActive": true,
+    "subjects": 6,
+    "attendance": 85
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440005",
+    "studentId": "STU12349",
+    "SchoolId": "SCHDUMMY543265001",
+    "name": "Eva Martinez",
+    "firstName": "Eva",
+    "lastName": "Martinez",
+    "email": "eva.martinez@student.com",
+    "phone": "+1 234 567 8911",
+    "grade": "Grade 12",
+    "class": "12-B",
+    "rollNumber": "2024005",
+    "dateOfBirth": "2006-01-25",
+    "gender": "FEMALE",
+    "parentDetails": {
+      "fatherName": "Carlos Martinez",
+      "fatherPhone": "+1 234 567 8912",
+      "fathersOccupation": "Chef",
+      "motherName": "Maria Martinez",
+      "motherPhone": "+1 234 567 8913",
+      "mothersOccupation": "Social Worker"
+    },
+    "guardianName": "Carlos Martinez",
+    "guardianPhone": "+1 234 567 8912",
+    "emergencyContact": {
+      "name": "Carlos Martinez",
+      "phone": "+1 234 567 8912",
+      "relation": "Father"
+    },
+    "address": {
+      "street": "654 Maple Dr",
+      "city": "Springfield",
+      "state": "IL",
+      "zipCode": "62705",
+      "country": "USA"
+    },
+    "admissionDate": "2020-08-15",
+    "enrollmentDate": "2020-08-15",
+    "status": "Active",
+    "isActive": true,
+    "subjects": 6,
+    "attendance": 97
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440006",
+    "studentId": "STU12350",
+    "SchoolId": "SCHDUMMY543265001",
+    "name": "Frank Brown",
+    "firstName": "Frank",
+    "lastName": "Brown",
+    "email": "frank.brown@student.com",
+    "phone": "+1 234 567 8914",
+    "grade": "Grade 11",
+    "class": "11-A",
+    "rollNumber": "2024006",
+    "dateOfBirth": "2007-09-14",
+    "gender": "MALE",
+    "parentDetails": {
+      "fatherName": "Thomas Brown",
+      "fatherPhone": "+1 234 567 8915",
+      "fathersOccupation": "Architect",
+      "motherName": "Jennifer Brown",
+      "motherPhone": "+1 234 567 8916",
+      "mothersOccupation": "Librarian"
+    },
+    "guardianName": "Thomas Brown",
+    "guardianPhone": "+1 234 567 8915",
+    "emergencyContact": {
+      "name": "Thomas Brown",
+      "phone": "+1 234 567 8915",
+      "relation": "Father"
+    },
+    "address": {
+      "street": "987 Cedar Ln",
+      "city": "Springfield",
+      "state": "IL",
+      "zipCode": "62706",
+      "country": "USA"
+    },
+    "admissionDate": "2021-08-15",
+    "enrollmentDate": "2021-08-15",
+    "status": "Active",
+    "isActive": true,
+    "subjects": 6,
+    "attendance": 90
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440007",
+    "studentId": "STU12351",
+    "SchoolId": "SCHDUMMY543265001",
+    "name": "Grace Lee",
+    "firstName": "Grace",
+    "lastName": "Lee",
+    "email": "grace.lee@student.com",
+    "phone": "+1 234 567 8917",
+    "grade": "Grade 10",
+    "class": "10-B",
+    "rollNumber": "2024007",
+    "dateOfBirth": "2008-12-03",
+    "gender": "FEMALE",
+    "parentDetails": {
+      "fatherName": "Kevin Lee",
+      "fatherPhone": "+1 234 567 8918",
+      "fathersOccupation": "Software Developer",
+      "motherName": "Helen Lee",
+      "motherPhone": "+1 234 567 8919",
+      "mothersOccupation": "Marketing Manager"
+    },
+    "guardianName": "Kevin Lee",
+    "guardianPhone": "+1 234 567 8918",
+    "emergencyContact": {
+      "name": "Kevin Lee",
+      "phone": "+1 234 567 8918",
+      "relation": "Father"
+    },
+    "address": {
+      "street": "147 Birch Way",
+      "city": "Springfield",
+      "state": "IL",
+      "zipCode": "62707",
+      "country": "USA"
+    },
+    "admissionDate": "2022-08-15",
+    "enrollmentDate": "2022-08-15",
+    "status": "Active",
+    "isActive": true,
+    "subjects": 6,
+    "attendance": 94
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440008",
+    "studentId": "STU12352",
+    "SchoolId": "SCHDUMMY543265001",
+    "name": "Henry Taylor",
+    "firstName": "Henry",
+    "lastName": "Taylor",
+    "email": "henry.taylor@student.com",
+    "phone": "+1 234 567 8920",
+    "grade": "Grade 9",
+    "class": "9-A",
+    "rollNumber": "2024008",
+    "dateOfBirth": "2009-04-08",
+    "gender": "MALE",
+    "parentDetails": {
+      "fatherName": "William Taylor",
+      "fatherPhone": "+1 234 567 8921",
+      "fathersOccupation": "Police Officer",
+      "motherName": "Nancy Taylor",
+      "motherPhone": "+1 234 567 8922",
+      "mothersOccupation": "Veterinarian"
+    },
+    "guardianName": "William Taylor",
+    "guardianPhone": "+1 234 567 8921",
+    "emergencyContact": {
+      "name": "William Taylor",
+      "phone": "+1 234 567 8921",
+      "relation": "Father"
+    },
+    "address": {
+      "street": "258 Willow St",
+      "city": "Springfield",
+      "state": "IL",
+      "zipCode": "62708",
+      "country": "USA"
+    },
+    "admissionDate": "2023-08-15",
+    "enrollmentDate": "2023-08-15",
+    "status": "Active",
+    "isActive": true,
+    "subjects": 6,
+    "attendance": 89
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440009",
+    "studentId": "STU12353",
+    "SchoolId": "SCHDUMMY543265001",
+    "name": "Isabella Garcia",
+    "firstName": "Isabella",
+    "lastName": "Garcia",
+    "email": "isabella.garcia@student.com",
+    "phone": "+1 234 567 8923",
+    "grade": "Grade 12",
+    "class": "12-A",
+    "rollNumber": "2024009",
+    "dateOfBirth": "2006-08-30",
+    "gender": "FEMALE",
+    "parentDetails": {
+      "fatherName": "Antonio Garcia",
+      "fatherPhone": "+1 234 567 8924",
+      "fathersOccupation": "Construction Manager",
+      "motherName": "Rosa Garcia",
+      "motherPhone": "+1 234 567 8925",
+      "mothersOccupation": "Elementary Teacher"
+    },
+    "guardianName": "Antonio Garcia",
+    "guardianPhone": "+1 234 567 8924",
+    "emergencyContact": {
+      "name": "Antonio Garcia",
+      "phone": "+1 234 567 8924",
+      "relation": "Father"
+    },
+    "address": {
+      "street": "369 Spruce Ave",
+      "city": "Springfield",
+      "state": "IL",
+      "zipCode": "62709",
+      "country": "USA"
+    },
+    "admissionDate": "2020-08-15",
+    "enrollmentDate": "2020-08-15",
+    "status": "Active",
+    "isActive": true,
+    "subjects": 6,
+    "attendance": 96
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440010",
+    "studentId": "STU12354",
+    "SchoolId": "SCHDUMMY543265001",
+    "name": "Jack Anderson",
+    "firstName": "Jack",
+    "lastName": "Anderson",
+    "email": "jack.anderson@student.com",
+    "phone": "+1 234 567 8926",
+    "grade": "Grade 11",
+    "class": "11-C",
+    "rollNumber": "2024010",
+    "dateOfBirth": "2007-06-12",
+    "gender": "MALE",
+    "parentDetails": {
+      "fatherName": "Peter Anderson",
+      "fatherPhone": "+1 234 567 8927",
+      "fathersOccupation": "Electrician",
+      "motherName": "Linda Anderson",
+      "motherPhone": "+1 234 567 8928",
+      "mothersOccupation": "Real Estate Agent"
+    },
+    "guardianName": "Peter Anderson",
+    "guardianPhone": "+1 234 567 8927",
+    "emergencyContact": {
+      "name": "Peter Anderson",
+      "phone": "+1 234 567 8927",
+      "relation": "Father"
+    },
+    "address": {
+      "street": "741 Poplar Rd",
+      "city": "Springfield",
+      "state": "IL",
+      "zipCode": "62710",
+      "country": "USA"
+    },
+    "admissionDate": "2021-08-15",
+    "enrollmentDate": "2021-08-15",
+    "status": "Active",
+    "isActive": true,
+    "subjects": 6,
+    "attendance": 91
+  }
+]

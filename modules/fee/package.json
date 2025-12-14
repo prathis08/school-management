@@ -1,0 +1,20 @@
+{
+  "name": "@school-management/fee",
+  "version": "1.0.0",
+  "description": "Fee management module for handling student fees, payments, and billing",
+  "main": "index.js",
+  "type": "module",
+  "keywords": [
+    "fee",
+    "payment",
+    "billing",
+    "financial"
+  ],
+  "dependencies": {
+    "@school-management/backend-core": "^1.0.0",
+    "@school-management/admission": "^1.0.0",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "sequelize": "^6.32.1"
+  }
+}

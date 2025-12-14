@@ -1,0 +1,49 @@
+{
+  "name": "school-management-backend",
+  "version": "1.0.0",
+  "description": "Modular MVC-based backend for school management system",
+  "main": "src/app.js",
+  "type": "module",
+  "workspaces": [
+    "modules/*"
+  ],
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "seed": "node scripts/seed.js",
+    "test-jwt": "node scripts/test-jwt.js",
+    "test-school-id": "node scripts/test-school-id.js",
+    "test-token-persistence": "node scripts/test-token-persistence.js",
+    "install-modules": "npm install --workspaces",
+    "build": "npm run build --workspaces"
+  },
+  "keywords": [
+    "nodejs",
+    "mvc",
+    "school-management",
+    "express",
+    "modular"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.0.0",
+    "js-yaml": "^4.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^4.2.1",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.32.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

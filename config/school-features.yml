@@ -1,0 +1,48 @@
+default:
+  enabled_features:
+    - teachers
+    - dashboard
+    - students
+    - classes
+    - subjects
+    - fees
+    - attendance
+    - notifications
+    - library
+
+schools:
+  "SCHOOL001":
+    enabled_features:
+      - dashboard
+      - students
+      - classes
+      - subjects
+      - notifications
+
+  "SCHOOL002":
+    enabled_features:
+      - teachers
+      - dashboard
+      - students
+      - classes
+      - subjects
+      - fees
+
+  "SCHOOL003":
+    enabled_features:
+      - dashboard
+      - students
+      - classes
+      - subjects
+      - library
+      - fees
+      - attendance
+      - notifications
+
+  "SCHOOL004":
+    enabled_features:
+      - dashboard
+      - students
+      - classes
+      - library
+      - notifications

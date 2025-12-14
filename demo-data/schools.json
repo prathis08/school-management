@@ -1,0 +1,31 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "schoolId": "SCHOOL002",
+    "schoolName": "Springfield High School",
+    "schoolCode": "SHS001",
+    "address": {
+      "street": "123 Education Drive",
+      "city": "Springfield",
+      "state": "Illinois",
+      "zipCode": "62701",
+      "country": "USA"
+    },
+    "phone": "+1 217 555 0001",
+    "email": "info@springfieldhigh.edu",
+    "website": "https://www.springfieldhigh.edu",
+    "schoolType": "Higher Secondary",
+    "board": "State Board",
+    "affiliationNumber": "IL-SB-001-1985",
+    "isActive": true,
+    "grades": ["9", "10", "11", "12"],
+    "facilities": [
+      "Library",
+      "Computer Lab",
+      "Science Lab",
+      "Sports Complex",
+      "Auditorium"
+    ],
+    "status": "Active"
+  }
+]
