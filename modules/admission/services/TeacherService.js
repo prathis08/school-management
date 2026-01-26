@@ -39,7 +39,6 @@ class TeacherService {
     const page = parseInt(options.page) || 1;
     const limit = parseInt(options.limit) || 10;
     const offset = (page - 1) * limit;
-    const summary = options.summary === "true";
 
     const teachers = await getAllTeachersDb(schoolId, {
       offset,
@@ -51,10 +50,7 @@ class TeacherService {
     const count = allTeachers.length;
 
     // Build appropriate response based on summary flag
-    const formattedTeachers = summary
-      ? buildTeachersSummariesResponse(teachers)
-      : buildTeachersListResponse(teachers);
-
+    const formattedTeachers = buildTeachersListResponse(teachers);
     return {
       teachers: formattedTeachers,
       pagination: {
@@ -95,7 +91,7 @@ class TeacherService {
             attributes: ["class_name", "grade", "section", "room"],
           },
         ],
-      }
+      },
     );
 
     if (!teacher) {
@@ -159,7 +155,7 @@ class TeacherService {
           role: ROLES.TEACHER,
           schoolId: schoolId,
         },
-        { transaction }
+        { transaction },
       );
 
       // Create teacher with schoolId
@@ -175,7 +171,7 @@ class TeacherService {
           address,
           schoolId: schoolId,
         },
-        { transaction }
+        { transaction },
       );
 
       // Commit transaction
@@ -195,7 +191,7 @@ class TeacherService {
               attributes: ["firstName", "lastName", "email", "schoolId"],
             },
           ],
-        }
+        },
       );
 
       // Build formatted response
@@ -314,7 +310,7 @@ class TeacherService {
       // Also deactivate user account
       await User.update(
         { isActive: false },
-        { where: { userId: teacher.userId }, transaction }
+        { where: { userId: teacher.userId }, transaction },
       );
 
       // Commit transaction

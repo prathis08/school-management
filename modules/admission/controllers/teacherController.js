@@ -7,7 +7,7 @@ import TeacherService from "../services/TeacherService.js";
 const getAllTeachers = async (req, res) => {
   try {
     // Get schoolId from authenticated user
-    const schoolId = req.user.schoolId;
+    const schoolId = req.schoolId;
     if (!schoolId) {
       return res.status(400).json({
         success: false,
@@ -52,7 +52,7 @@ const getTeacherById = async (req, res) => {
 
     const teacher = await TeacherService.getTeacherById(
       req.params.id,
-      schoolId
+      schoolId,
     );
 
     if (!teacher) {
@@ -101,7 +101,7 @@ const createTeacher = async (req, res) => {
 
     const createdTeacher = await TeacherService.createTeacher(
       req.body,
-      schoolId
+      schoolId,
     );
 
     res.status(201).json({
@@ -150,7 +150,7 @@ const updateTeacher = async (req, res) => {
     const updatedTeacher = await TeacherService.updateTeacher(
       req.params.id,
       req.body,
-      schoolId
+      schoolId,
     );
 
     res.status(200).json({

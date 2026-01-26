@@ -1,26 +1,14 @@
-/**
- * Teacher Response Builder
- * Builds concrete response objects for teacher data
- */
-
-/**
- * Build teacher response object for API responses
- * @param {Object} teacher - Raw teacher data from database
- * @returns {Object} - Formatted teacher response object
- */
 export const buildTeacherResponse = (teacher) => {
   if (!teacher) {
     return null;
   }
-
+  teacher = JSON.parse(JSON.stringify(teacher));
   return {
-    id: teacher.teacher_id, // Use custom teacher_id as the primary identifier
     teacherId: teacher.teacher_id,
     personalInfo: {
       firstName: teacher.user?.first_name || null,
       lastName: teacher.user?.last_name || null,
       email: teacher.user?.email || null,
-      phone: teacher.phone || null,
     },
     professionalInfo: {
       department: teacher.department,
@@ -78,7 +66,6 @@ export const buildTeacherSummaryResponse = (teacher) => {
   }
 
   return {
-    id: teacher.teacher_id,
     teacherId: teacher.teacher_id,
     name: `${teacher.user?.first_name || ""} ${
       teacher.user?.last_name || ""
