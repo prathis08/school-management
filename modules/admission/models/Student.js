@@ -61,7 +61,7 @@ const Student = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    grade: {
+    gradeId: {
       type: DataTypes.STRING,
       allowNull: true,
     },
@@ -82,8 +82,8 @@ const Student = sequelize.define(
           if (!isValidGender(value)) {
             throw new Error(
               `Invalid gender. Must be one of: ${Object.values(
-                GENDER_TYPES
-              ).join(", ")}`
+                GENDER_TYPES,
+              ).join(", ")}`,
             );
           }
         },
@@ -151,7 +151,7 @@ const Student = sequelize.define(
     freezeTableName: true,
     timestamps: true,
     underscored: true, // This makes Sequelize use snake_case for timestamps
-  }
+  },
 );
 
 export default Student;

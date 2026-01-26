@@ -1,13 +1,6 @@
 import { validationResult } from "express-validator";
-import { Op } from "sequelize";
-import FeeStructure from "../models/FeeStructure.js";
-import Payment from "../models/Payment.js";
-import { Student } from "@school-management/admission";
-import {
-  FEE_TYPES,
-  PAYMENT_METHODS,
-  PAYMENT_STATUS,
-} from "../constants/feeConstants.js";
+import FeeService from "../services/FeeService.js";
+import { FEE_TYPES, PAYMENT_METHODS } from "../constants/feeConstants.js";
 
 // Create fee structure
 export const createFeeStructure = async (req, res) => {
@@ -17,17 +10,11 @@ export const createFeeStructure = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { className, feeType, amount, dueDate, academicYear } = req.body;
     const schoolId = req.user.schoolId;
-
-    const feeStructure = await FeeStructure.create({
-      schoolId: schoolId,
-      class_name: className,
-      fee_type: feeType,
-      amount,
-      due_date: dueDate,
-      academic_year: academicYear,
-    });
+    const feeStructure = await FeeService.createFeeStructure(
+      req.body,
+      schoolId,
+    );
 
     res.status(201).json({
       success: true,
@@ -48,20 +35,9 @@ export const createFeeStructure = async (req, res) => {
 export const getFeeStructures = async (req, res) => {
   try {
     const schoolId = req.user.schoolId;
-    const { className, academicYear, feeType } = req.query;
+    const filters = req.query;
 
-    const whereClause = { schoolId: schoolId, is_active: true };
-    if (className) whereClause.class_name = className;
-    if (academicYear) whereClause.academic_year = academicYear;
-    if (feeType) whereClause.fee_type = feeType;
-
-    const feeStructures = await FeeStructure.findAll({
-      where: whereClause,
-      order: [
-        ["class_name", "ASC"],
-        ["fee_type", "ASC"],
-      ],
-    });
+    const feeStructures = await FeeService.getFeeStructures(schoolId, filters);
 
     res.json({
       success: true,
@@ -69,6 +45,35 @@ export const getFeeStructures = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching fee structures:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// Get students with fee filters
+export const getStudentsWithFees = async (req, res) => {
+  try {
+    const schoolId = req.schoolId;
+    const { gradeId, feeType, name } = req.query;
+
+    const filtersForSearch = {
+      schoolId,
+      gradeId,
+      ...(feeType && { feeType }),
+      ...(name && { name }),
+    };
+
+    const students = await FeeService.getStudentsWithFees(filtersForSearch);
+
+    res.json({
+      success: true,
+      data: students,
+    });
+  } catch (error) {
+    console.error("Error fetching students with fees:", error);
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -87,20 +92,13 @@ export const updateFeeStructure = async (req, res) => {
 
     const { id } = req.params;
     const schoolId = req.user.schoolId;
-    const updated_ata = req.body;
+    const updateData = req.body;
 
-    const [updatedRows] = await FeeStructure.update(updated_ata, {
-      where: { id, schoolId: schoolId },
-    });
-
-    if (updatedRows === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Fee structure not found",
-      });
-    }
-
-    const updatedFeeStructure = await FeeStructure.findByPk(id);
+    const updatedFeeStructure = await FeeService.updateFeeStructure(
+      id,
+      updateData,
+      schoolId,
+    );
 
     res.json({
       success: true,
@@ -109,6 +107,14 @@ export const updateFeeStructure = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating fee structure:", error);
+
+    if (error.message === "Fee structure not found") {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -120,20 +126,10 @@ export const updateFeeStructure = async (req, res) => {
 // Delete fee structure
 export const deleteFeeStructure = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { feeStructureId } = req.params;
     const schoolId = req.user.schoolId;
 
-    const deletedRows = await FeeStructure.update(
-      { is_active: false },
-      { where: { id, schoolId: schoolId } }
-    );
-
-    if (deletedRows[0] === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Fee structure not found",
-      });
-    }
+    await FeeService.deleteFeeStructure(feeStructureId, schoolId);
 
     res.json({
       success: true,
@@ -141,6 +137,14 @@ export const deleteFeeStructure = async (req, res) => {
     });
   } catch (error) {
     console.error("Error deleting fee structure:", error);
+
+    if (error.message === "Fee structure not found") {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -157,29 +161,8 @@ export const recordPayment = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const {
-      studentId,
-      feeStructureId,
-      amount,
-      paymentMethod,
-      transactionId,
-      remarks,
-    } = req.body;
     const schoolId = req.user.schoolId;
-
-    // Generate receipt number
-    const receiptNumber = `RCP-${schoolId}-${Date.now()}`;
-
-    const payment = await Payment.create({
-      schoolId: schoolId,
-      student_id: studentId,
-      fee_structure_id: feeStructureId,
-      amount,
-      payment_method: paymentMethod,
-      receipt_number: receiptNumber,
-      transaction_id: transactionId,
-      remarks,
-    });
+    const payment = await FeeService.recordPayment(req.body, schoolId);
 
     res.status(201).json({
       success: true,
@@ -202,21 +185,7 @@ export const getPaymentHistory = async (req, res) => {
     const { studentId } = req.params;
     const schoolId = req.user.schoolId;
 
-    const payments = await Payment.findAll({
-      where: { student_id: studentId, schoolId: schoolId },
-      include: [
-        {
-          model: FeeStructure,
-          as: "feeStructure",
-        },
-        {
-          model: Student,
-          as: "student",
-          attributes: ["first_name", "last_name", "roll_number"],
-        },
-      ],
-      order: [["paymentDate", "DESC"]],
-    });
+    const payments = await FeeService.getPaymentHistory(studentId, schoolId);
 
     res.json({
       success: true,
@@ -236,49 +205,64 @@ export const getPaymentHistory = async (req, res) => {
 export const generateFeeReport = async (req, res) => {
   try {
     const schoolId = req.user.schoolId;
-    const { startDate, endDate, className } = req.query;
+    const filters = req.query;
 
-    const whereClause = { schoolId: schoolId };
-    if (startDate && endDate) {
-      whereClause.payment_date = {
-        [Op.between]: [new Date(startDate), new Date(endDate)],
-      };
-    }
+    const reportData = await FeeService.generateFeeReport(schoolId, filters);
 
-    const payments = await Payment.findAll({
-      where: whereClause,
-      include: [
-        {
-          model: FeeStructure,
-          as: "feeStructure",
-          where: className ? { class_name: className } : {},
-        },
-        {
-          model: Student,
-          as: "student",
-          attributes: ["firstName", "lastName", "rollNumber"],
-        },
-      ],
-      order: [["paymentDate", "DESC"]],
+    res.json({
+      success: true,
+      data: reportData,
     });
+  } catch (error) {
+    console.error("Error generating fee report:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
 
-    const totalAmount = payments.reduce(
-      (sum, payment) => sum + parseFloat(payment.amount),
-      0
+// Get fee types
+export const getFeeTypes = async (req, res) => {
+  try {
+    const feeTypes = Object.entries(FEE_TYPES).map(([key, value]) => ({
+      key,
+      value,
+      label: key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, " "),
+    }));
+
+    res.json({
+      success: true,
+      data: feeTypes,
+    });
+  } catch (error) {
+    console.error("Error fetching fee types:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// Get payment methods
+export const getPaymentMethods = async (req, res) => {
+  try {
+    const paymentMethods = Object.entries(PAYMENT_METHODS).map(
+      ([key, value]) => ({
+        key,
+        value,
+        label: key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, " "),
+      }),
     );
 
     res.json({
       success: true,
-      data: {
-        payments,
-        summary: {
-          totalPayments: payments.length,
-          totalAmount,
-        },
-      },
+      data: paymentMethods,
     });
   } catch (error) {
-    console.error("Error generating fee report:", error);
+    console.error("Error fetching payment methods:", error);
     res.status(500).json({
       success: false,
       message: "Server error",

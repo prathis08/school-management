@@ -5,6 +5,7 @@ import {
   Class,
 } from "@school-management/backend-core/models/index.js";
 import { ROLES } from "@school-management/backend-core/constants/roles.js";
+import { getSequelize } from "@school-management/backend-core/config/database.js";
 import {
   getAllTeachers as getAllTeachersDb,
   getTeacherById as getTeacherByIdDb,
@@ -25,6 +26,7 @@ import {
   buildTeacherResponse,
   buildTeachersSummariesResponse,
 } from "../utils/teacherResponseBuilder.js";
+import { generateCustomIdWithPrefix } from "@school-management/backend-core/utils/customIdGenerator.js";
 
 class TeacherService {
   /**
@@ -74,13 +76,13 @@ class TeacherService {
       Teacher,
       teacherId,
       schoolId,
-      "teacher_id", // Custom ID field name
+      "teacherId", // Custom ID field name
       {
         include: [
           {
             model: User,
             as: "user",
-            attributes: ["first_name", "last_name", "email", "schoolId"],
+            attributes: ["firstName", "lastName", "email", "schoolId"],
           },
           {
             model: Subject,
@@ -115,82 +117,94 @@ class TeacherService {
       firstName,
       lastName,
       email,
-      password,
-      employeeId,
       department,
       qualification,
       experience,
       dateOfJoining,
-      salary,
       phone,
       address,
       subjects,
       classes,
     } = teacherData;
 
-    // Check if user with email already exists in this school
-    const existingUser = await findAllBySchool(User, schoolId, { email });
-    if (existingUser.length > 0) {
-      throw new Error("User with this email already exists in this school");
-    }
+    const sequelize = getSequelize();
+    const transaction = await sequelize.transaction();
 
-    // Check if employee ID already exists in this school
-    const existingTeacher = await findAllBySchool(Teacher, schoolId, {
-      teacher_id: employeeId,
-    });
-    if (existingTeacher.length > 0) {
-      throw new Error("Employee ID already exists in this school");
-    }
+    try {
+      const employeeId = generateCustomIdWithPrefix("TEACHER");
 
-    // Create user first with schoolId
-    const user = await createWithSchool(
-      User,
-      {
-        first_name: firstName,
-        last_name: lastName,
-        email,
-        password,
-        role: ROLES.TEACHER,
-      },
-      schoolId
-    );
-
-    // Create teacher with schoolId
-    const teacher = await createWithSchool(
-      Teacher,
-      {
-        user_id: user.id,
-        teacher_id: employeeId,
-        department,
-        qualification,
-        experience,
-        date_of_joining: dateOfJoining,
-        salary,
-        phone,
-        address,
-      },
-      schoolId
-    );
-
-    // Fetch teacher with user data for response
-    const createdTeacher = await findByIdentifierAndSchool(
-      Teacher,
-      teacher.id,
-      schoolId,
-      "teacher_id",
-      {
-        include: [
-          {
-            model: User,
-            as: "user",
-            attributes: ["first_name", "last_name", "email", "schoolId"],
-          },
-        ],
+      // Check if user with email already exists in this school
+      const existingUser = await findAllBySchool(User, schoolId, { email });
+      if (existingUser.length > 0) {
+        throw new Error("User with this email already exists in this school");
       }
-    );
 
-    // Build formatted response
-    return buildTeacherResponse(createdTeacher);
+      // Check if employee ID already exists in this school
+      const existingTeacher = await findAllBySchool(Teacher, schoolId, {
+        teacherId: employeeId,
+      });
+      if (existingTeacher.length > 0) {
+        throw new Error("Employee ID already exists in this school");
+      }
+
+      // Create user first with schoolId
+      const defaultPassword = "ChangeMe123!";
+      const password = defaultPassword; // In real scenario, hash the password
+      const user = await User.create(
+        {
+          firstName: firstName,
+          lastName: lastName,
+          email,
+          password,
+          role: ROLES.TEACHER,
+          schoolId: schoolId,
+        },
+        { transaction }
+      );
+
+      // Create teacher with schoolId
+      const teacher = await Teacher.create(
+        {
+          userId: user.userId,
+          teacherId: employeeId,
+          department,
+          qualification,
+          experience,
+          dateOfJoining: dateOfJoining,
+          phone,
+          address,
+          schoolId: schoolId,
+        },
+        { transaction }
+      );
+
+      // Commit transaction
+      await transaction.commit();
+
+      // Fetch teacher with user data for response
+      const createdTeacher = await findByIdentifierAndSchool(
+        Teacher,
+        teacher.teacherId,
+        schoolId,
+        "teacherId",
+        {
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["firstName", "lastName", "email", "schoolId"],
+            },
+          ],
+        }
+      );
+
+      // Build formatted response
+      return buildTeacherResponse(createdTeacher);
+    } catch (error) {
+      // Rollback transaction on error
+      await transaction.rollback();
+      throw error;
+    }
   }
 
   /**
@@ -201,69 +215,81 @@ class TeacherService {
    * @returns {Object} Updated teacher data
    */
   async updateTeacher(teacherId, updateData, schoolId) {
-    const teacher = await findByIdentifier(Teacher, teacherId);
-    if (!teacher) {
-      throw new Error("Teacher not found");
-    }
+    const sequelize = getSequelize();
+    const transaction = await sequelize.transaction();
 
-    // Check if schoolId already exists (if provided and different from current)
-    if (updateData.schoolId && updateData.schoolId !== teacher.schoolId) {
-      const existingSchoolId = await Teacher.findOne({
-        where: { schoolId: updateData.schoolId },
-      });
-      if (existingSchoolId) {
-        throw new Error("School ID already exists");
+    try {
+      const teacher = await findByIdentifier(Teacher, teacherId);
+      if (!teacher) {
+        throw new Error("Teacher not found");
       }
+
+      // Check if schoolId already exists (if provided and different from current)
+      if (updateData.schoolId && updateData.schoolId !== teacher.schoolId) {
+        const existingSchoolId = await Teacher.findOne({
+          where: { schoolId: updateData.schoolId },
+        });
+        if (existingSchoolId) {
+          throw new Error("School ID already exists");
+        }
+      }
+
+      // Update teacher fields
+      const teacherUpdateData = { ...updateData };
+      delete teacherUpdateData.firstName;
+      delete teacherUpdateData.lastName;
+      delete teacherUpdateData.email;
+
+      await teacher.update(teacherUpdateData, { transaction });
+
+      // Update user fields if provided
+      if (
+        updateData.firstName ||
+        updateData.lastName ||
+        updateData.email ||
+        updateData.schoolId
+      ) {
+        const user = await User.findOne({ where: { userId: teacher.userId } });
+        const userUpdateData = {};
+        if (updateData.firstName)
+          userUpdateData.firstName = updateData.firstName;
+        if (updateData.lastName) userUpdateData.lastName = updateData.lastName;
+        if (updateData.email) userUpdateData.email = updateData.email;
+        if (updateData.schoolId) userUpdateData.schoolId = updateData.schoolId;
+        await user.update(userUpdateData, { transaction });
+      }
+
+      // Commit transaction
+      await transaction.commit();
+
+      // Fetch updated teacher with associations
+      const updatedTeacher = await Teacher.findByPk(teacher.id, {
+        include: [
+          {
+            model: User,
+            as: "user",
+            attributes: ["firstName", "lastName", "email"],
+          },
+          {
+            model: Subject,
+            as: "subjects",
+            attributes: ["subject_name", "subject_code"],
+          },
+          {
+            model: Class,
+            as: "managedClasses",
+            attributes: ["class_name", "grade", "section"],
+          },
+        ],
+      });
+
+      // Build formatted response
+      return buildTeacherResponse(updatedTeacher);
+    } catch (error) {
+      // Rollback transaction on error
+      await transaction.rollback();
+      throw error;
     }
-
-    // Update teacher fields
-    const teacherUpdateData = { ...updateData };
-    delete teacherUpdateData.firstName;
-    delete teacherUpdateData.lastName;
-    delete teacherUpdateData.email;
-
-    await teacher.update(teacherUpdateData);
-
-    // Update user fields if provided
-    if (
-      updateData.firstName ||
-      updateData.lastName ||
-      updateData.email ||
-      updateData.schoolId
-    ) {
-      const user = await User.findByPk(teacher.user_id);
-      const userUpdateData = {};
-      if (updateData.firstName)
-        userUpdateData.first_name = updateData.firstName;
-      if (updateData.lastName) userUpdateData.last_name = updateData.lastName;
-      if (updateData.email) userUpdateData.email = updateData.email;
-      if (updateData.schoolId) userUpdateData.schoolId = updateData.schoolId;
-      await user.update(userUpdateData);
-    }
-
-    // Fetch updated teacher with associations
-    const updatedTeacher = await Teacher.findByPk(teacher.id, {
-      include: [
-        {
-          model: User,
-          as: "user",
-          attributes: ["first_name", "last_name", "email"],
-        },
-        {
-          model: Subject,
-          as: "subjects",
-          attributes: ["subject_name", "subject_code"],
-        },
-        {
-          model: Class,
-          as: "managedClasses",
-          attributes: ["class_name", "grade", "section"],
-        },
-      ],
-    });
-
-    // Build formatted response
-    return buildTeacherResponse(updatedTeacher);
   }
 
   /**
@@ -273,18 +299,32 @@ class TeacherService {
    * @returns {boolean} Success status
    */
   async deleteTeacher(teacherId, schoolId) {
-    const teacher = await findByIdentifier(Teacher, teacherId);
-    if (!teacher) {
-      throw new Error("Teacher not found");
+    const sequelize = getSequelize();
+    const transaction = await sequelize.transaction();
+
+    try {
+      const teacher = await findByIdentifier(Teacher, teacherId);
+      if (!teacher) {
+        throw new Error("Teacher not found");
+      }
+
+      // Soft delete - mark as inactive
+      await teacher.update({ is_active: false }, { transaction });
+
+      // Also deactivate user account
+      await User.update(
+        { isActive: false },
+        { where: { userId: teacher.userId }, transaction }
+      );
+
+      // Commit transaction
+      await transaction.commit();
+      return true;
+    } catch (error) {
+      // Rollback transaction on error
+      await transaction.rollback();
+      throw error;
     }
-
-    // Soft delete - mark as inactive
-    await teacher.update({ is_active: false });
-
-    // Also deactivate user account
-    await User.update({ is_active: false }, { where: { id: teacher.user_id } });
-
-    return true;
   }
 
   /**

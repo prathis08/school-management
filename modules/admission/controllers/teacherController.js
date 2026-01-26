@@ -91,7 +91,7 @@ const createTeacher = async (req, res) => {
     }
 
     // Get schoolId from authenticated user
-    const schoolId = req.user.schoolId;
+    const schoolId = req.schoolId;
     if (!schoolId) {
       return res.status(400).json({
         success: false,

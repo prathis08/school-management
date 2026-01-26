@@ -44,6 +44,12 @@ export {
 // Config
 export { connectDB, getSequelize } from "./config/database.js";
 
+// Utilities
+export {
+  withTransaction,
+  withTransactionMultiple,
+} from "./utils/transactionHelper.js";
+
 // Constants
 export {
   ROLES,

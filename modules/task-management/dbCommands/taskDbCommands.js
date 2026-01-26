@@ -16,21 +16,27 @@ import {
 /**
  * Create a new task
  */
-export const createTask = async (taskData, schoolId, userId) => {
-  const task = await Task.create({
-    ...taskData,
-    schoolId: schoolId,
-    created_by_user_id: userId,
-  });
+export const createTask = async (taskData, schoolId, userId, options = {}) => {
+  const task = await Task.create(
+    {
+      ...taskData,
+      schoolId: schoolId,
+      created_by_user_id: userId,
+    },
+    options
+  );
 
   // Create history entry
-  await TaskHistory.create({
-    task_id: task.id,
-    action: TASK_ACTIONS.CREATED,
-    description: "Task created",
-    changed_by_user_id: userId,
-    schoolId: schoolId,
-  });
+  await TaskHistory.create(
+    {
+      task_id: task.id,
+      action: TASK_ACTIONS.CREATED,
+      description: "Task created",
+      changed_by_user_id: userId,
+      schoolId: schoolId,
+    },
+    options
+  );
 
   return task;
 };
@@ -180,13 +186,20 @@ export const getTaskById = async (taskId, schoolId) => {
 /**
  * Update a task
  */
-export const updateTask = async (taskId, updateData, schoolId, userId) => {
+export const updateTask = async (
+  taskId,
+  updateData,
+  schoolId,
+  userId,
+  options = {}
+) => {
   const task = await Task.findOne({
     where: {
       task_id: taskId,
       schoolId: schoolId,
       is_active: true,
     },
+    ...options,
   });
 
   if (!task) {
@@ -201,16 +214,19 @@ export const updateTask = async (taskId, updateData, schoolId, userId) => {
     updateData.completed_by_user_id = userId;
   }
 
-  await task.update(updateData);
+  await task.update(updateData, options);
 
   // Create history entry
-  await TaskHistory.create({
-    task_id: task.id,
-    action: TASK_ACTIONS.UPDATED,
-    description: "Task updated",
-    changed_by_user_id: userId,
-    schoolId: schoolId,
-  });
+  await TaskHistory.create(
+    {
+      task_id: task.id,
+      action: TASK_ACTIONS.UPDATED,
+      description: "Task updated",
+      changed_by_user_id: userId,
+      schoolId: schoolId,
+    },
+    options
+  );
 
   return task;
 };
@@ -218,32 +234,39 @@ export const updateTask = async (taskId, updateData, schoolId, userId) => {
 /**
  * Delete a task (soft delete)
  */
-export const deleteTask = async (taskId, schoolId, userId) => {
+export const deleteTask = async (taskId, schoolId, userId, options = {}) => {
   const task = await Task.findOne({
     where: {
       task_id: taskId,
       schoolId: schoolId,
       is_active: true,
     },
+    ...options,
   });
 
   if (!task) {
     return false;
   }
 
-  await task.update({
-    is_active: false,
-    deleted_at: new Date(),
-  });
+  await task.update(
+    {
+      is_active: false,
+      deleted_at: new Date(),
+    },
+    options
+  );
 
   // Create history entry
-  await TaskHistory.create({
-    task_id: task.id,
-    action: TASK_ACTIONS.DELETED,
-    description: "Task deleted",
-    changed_by_user_id: userId,
-    schoolId: schoolId,
-  });
+  await TaskHistory.create(
+    {
+      task_id: task.id,
+      action: TASK_ACTIONS.DELETED,
+      description: "Task deleted",
+      changed_by_user_id: userId,
+      schoolId: schoolId,
+    },
+    options
+  );
 
   return true;
 };
@@ -317,34 +340,47 @@ export const getTaskStatistics = async (schoolId) => {
 /**
  * Add comment to a task
  */
-export const addTaskComment = async (taskId, content, schoolId, userId) => {
+export const addTaskComment = async (
+  taskId,
+  content,
+  schoolId,
+  userId,
+  options = {}
+) => {
   const task = await Task.findOne({
     where: {
       task_id: taskId,
       schoolId: schoolId,
       is_active: true,
     },
+    ...options,
   });
 
   if (!task) {
     return null;
   }
 
-  const comment = await TaskComment.create({
-    task_id: task.id,
-    content,
-    created_by_user_id: userId,
-    schoolId: schoolId,
-  });
+  const comment = await TaskComment.create(
+    {
+      task_id: task.id,
+      content,
+      created_by_user_id: userId,
+      schoolId: schoolId,
+    },
+    options
+  );
 
   // Create history entry
-  await TaskHistory.create({
-    task_id: task.id,
-    action: TASK_ACTIONS.COMMENT_ADDED,
-    description: "Comment added to task",
-    changed_by_user_id: userId,
-    schoolId: schoolId,
-  });
+  await TaskHistory.create(
+    {
+      task_id: task.id,
+      action: TASK_ACTIONS.COMMENT_ADDED,
+      description: "Comment added to task",
+      changed_by_user_id: userId,
+      schoolId: schoolId,
+    },
+    options
+  );
 
   return comment;
 };

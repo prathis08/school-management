@@ -14,6 +14,7 @@ import Subject from "../../admission/models/Subject.js";
 // Fee Module Models
 import FeeStructure from "../../fee/models/FeeStructure.js";
 import Payment from "../../fee/models/Payment.js";
+import GradeFees from "../../fee/models/GradeFees.js";
 
 // Transportation Module Models
 import Bus from "../../transportation/models/Bus.js";
@@ -124,6 +125,48 @@ Payment.belongsTo(Student, {
   foreignKey: "studentId",
   targetKey: "studentId",
   as: "student",
+});
+
+// Class-FeeStructure Many-to-Many associations through GradeFees
+Class.belongsToMany(FeeStructure, {
+  through: GradeFees,
+  foreignKey: "gradeId",
+  sourceKey: "classId",
+  otherKey: "feeStructureId",
+  targetKey: "feeStructureId",
+  as: "feeStructures",
+});
+
+FeeStructure.belongsToMany(Class, {
+  through: GradeFees,
+  foreignKey: "feeStructureId",
+  sourceKey: "feeStructureId",
+  otherKey: "gradeId",
+  targetKey: "classId",
+  as: "classes",
+});
+
+// GradeFees direct associations
+GradeFees.belongsTo(Class, {
+  foreignKey: "gradeId",
+  targetKey: "classId",
+  as: "class",
+});
+GradeFees.belongsTo(FeeStructure, {
+  foreignKey: "feeStructureId",
+  targetKey: "feeStructureId",
+  as: "feeStructure",
+});
+
+Class.hasMany(GradeFees, {
+  foreignKey: "gradeId",
+  sourceKey: "classId",
+  as: "classFees",
+});
+FeeStructure.hasMany(GradeFees, {
+  foreignKey: "feeStructureId",
+  sourceKey: "feeStructureId",
+  as: "classFees",
 });
 
 // Transportation Module associations - using custom IDs
@@ -311,6 +354,7 @@ export {
   // Fee Module
   FeeStructure,
   Payment,
+  GradeFees,
 
   // Transportation Module
   Bus,

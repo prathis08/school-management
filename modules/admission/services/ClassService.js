@@ -15,6 +15,8 @@ import {
   getGradesAndClasses as getGradesAndClassesFromDB,
 } from "../dbCommands/classesDbCommands.js";
 import { findByIdentifier } from "../dbCommands/genericDbCommands.js";
+import { withTransaction } from "@school-management/backend-core/utils/transactionHelper.js";
+import { generateCustomIdWithPrefix } from "@school-management/backend-core/utils/customIdGenerator.js";
 
 class ClassService {
   /**
@@ -140,21 +142,22 @@ class ClassService {
    * @returns {Object} Created class data
    */
   async createClass(classData, schoolId) {
+    console.log(JSON.stringify(classData));
     const {
       className,
       grade,
       section,
       classTeacher,
-      subjects,
       maxStudents,
       room,
       schedule,
+      gradeId,
     } = classData;
 
     // Check if class name already exists for this school
     const existingClass = await Class.findOne({
       where: {
-        class_name: className,
+        className: className,
         schoolId: schoolId,
         is_active: true,
       },
@@ -175,18 +178,41 @@ class ClassService {
       });
       if (existingGradeSection) {
         throw new Error(
-          "Grade-Section combination already exists in this school"
+          "Grade-Section combination already exists in this school",
         );
+      }
+    }
+
+    // Handle gradeId - either use provided or find/create one for this grade
+    let finalGradeId = gradeId;
+    if (!finalGradeId && grade) {
+      // Check if there's an existing gradeId for this grade in this school
+      const existingGradeClass = await Class.findOne({
+        where: {
+          grade,
+          schoolId: schoolId,
+          is_active: true,
+        },
+        attributes: ["gradeId"],
+      });
+
+      if (existingGradeClass) {
+        // Use existing gradeId for this grade
+        finalGradeId = existingGradeClass.gradeId;
+      } else {
+        // Generate new gradeId for this grade
+        finalGradeId = generateCustomIdWithPrefix("GRADE");
       }
     }
 
     // Create class data object
     const newClassData = {
-      class_name: className,
+      className: className,
       grade,
       section,
-      class_teacher_id: classTeacher,
-      max_students: maxStudents,
+      gradeId: finalGradeId,
+      classTeacherId: classTeacher,
+      maxStudents: maxStudents,
       room,
       schedule,
     };
@@ -265,8 +291,30 @@ class ClassService {
       });
       if (gradeSectionExists) {
         throw new Error(
-          "Grade-Section combination already exists in this school"
+          "Grade-Section combination already exists in this school",
         );
+      }
+    }
+
+    // Handle gradeId updates when grade changes
+    if (updateData.grade && updateData.grade !== existingClass.grade) {
+      // Check if there's an existing gradeId for the new grade
+      const existingGradeClass = await Class.findOne({
+        where: {
+          grade: updateData.grade,
+          schoolId: schoolId,
+          is_active: true,
+          id: { [Op.ne]: existingClass.id },
+        },
+        attributes: ["gradeId"],
+      });
+
+      if (existingGradeClass) {
+        // Use existing gradeId for this grade
+        updateData.gradeId = existingGradeClass.gradeId;
+      } else {
+        // Generate new gradeId for the new grade
+        updateData.gradeId = generateCustomIdWithPrefix("GRADE");
       }
     }
 
@@ -319,7 +367,7 @@ class ClassService {
 
     if (activeStudents > 0) {
       throw new Error(
-        `Cannot delete class. It has ${activeStudents} active students. Please move students to other classes first.`
+        `Cannot delete class. It has ${activeStudents} active students. Please move students to other classes first.`,
       );
     }
 
@@ -341,61 +389,136 @@ class ClassService {
    * @returns {Object} Success message with class info
    */
   async addStudentToClass(classId, studentId, schoolId) {
-    // Get class data
-    const classData = await getClassByIdFromDB(classId, schoolId);
-    if (!classData) {
-      throw new Error("Class not found");
-    }
-
-    // Find student by either UUID or custom ID
-    const student = await findByIdentifier(Student, studentId);
-    if (!student) {
-      throw new Error("Student not found");
-    }
-
-    // Verify student belongs to the same school
-    if (student.schoolId !== schoolId) {
-      throw new Error("Student does not belong to your school");
-    }
-
-    // Get current student count in class
-    const currentStudents = await Student.count({
-      where: { class_id: classData.id, is_active: true },
-    });
-
-    // Check if class is at capacity
-    if (classData.max_students && currentStudents >= classData.max_students) {
-      throw new Error(
-        `Class is at maximum capacity (${classData.max_students} students)`
-      );
-    }
-
-    // Check if student is already in this class
-    if (student.class_id === classData.id) {
-      throw new Error("Student is already in this class");
-    }
-
-    // Check if student is in another active class
-    if (student.class_id) {
-      const currentClass = await Class.findByPk(student.class_id, {
-        attributes: ["class_name", "grade", "section"],
+    return await withTransaction(async (transaction) => {
+      // Get class data
+      const classData = await getClassByIdFromDB(classId, schoolId, {
+        transaction,
       });
-      if (currentClass) {
+      if (!classData) {
+        throw new Error("Class not found");
+      }
+
+      // Find student by either UUID or custom ID
+      const student = await findByIdentifier(Student, studentId, {
+        transaction,
+      });
+      if (!student) {
+        throw new Error("Student not found");
+      }
+
+      // Verify student belongs to the same school
+      if (student.schoolId !== schoolId) {
+        throw new Error("Student does not belong to your school");
+      }
+
+      // Get current student count in class
+      const currentStudents = await Student.count({
+        where: { class_id: classData.id, is_active: true },
+        transaction,
+      });
+
+      // Check if class is at capacity
+      if (classData.max_students && currentStudents >= classData.max_students) {
         throw new Error(
-          `Student is already enrolled in ${currentClass.class_name} (Grade ${currentClass.grade}-${currentClass.section})`
+          `Class is at maximum capacity (${classData.max_students} students)`,
         );
       }
-    }
 
-    // Add student to class
-    await student.update({ class_id: classData.id });
+      // Check if student is already in this class
+      if (student.class_id === classData.id) {
+        throw new Error("Student is already in this class");
+      }
 
-    return {
-      studentId: student.student_id,
-      className: classData.class_name,
-      grade: classData.grade,
-      section: classData.section,
-    };
+      // Check if student is in another active class
+      if (student.class_id) {
+        const currentClass = await Class.findByPk(student.class_id, {
+          attributes: ["class_name", "grade", "section"],
+          transaction,
+        });
+        if (currentClass) {
+          throw new Error(
+            `Student is already enrolled in ${currentClass.class_name} (Grade ${currentClass.grade}-${currentClass.section})`,
+          );
+        }
+      }
+
+      // Add student to class
+      await student.update({ class_id: classData.id }, { transaction });
+
+      return {
+        studentId: student.student_id,
+        className: classData.class_name,
+        grade: classData.grade,
+        section: classData.section,
+      };
+    });
+  }
+
+  /**
+   * Get all classes for a specific gradeId
+   * @param {string} gradeId - Grade ID
+   * @param {string} schoolId - School ID
+   * @returns {Object[]} Array of classes with the same gradeId
+   */
+  async getClassesByGradeId(gradeId, schoolId) {
+    const classes = await Class.findAll({
+      where: {
+        gradeId: gradeId,
+        schoolId: schoolId,
+        is_active: true,
+      },
+      include: [
+        {
+          model: Teacher,
+          as: "classTeacher",
+          attributes: ["teacher_id"],
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["first_name", "last_name", "email"],
+            },
+          ],
+        },
+        {
+          model: Student,
+          as: "students",
+          attributes: ["student_id"],
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["first_name", "last_name", "email"],
+            },
+          ],
+        },
+      ],
+      order: [
+        ["section", "ASC"],
+        ["class_name", "ASC"],
+      ],
+    });
+
+    return classes;
+  }
+
+  /**
+   * Get all unique grades with their gradeIds for a school
+   * @param {string} schoolId - School ID
+   * @returns {Object[]} Array of unique grades with gradeIds
+   */
+  async getGradesList(schoolId) {
+    const grades = await Class.findAll({
+      attributes: ["gradeId", "grade"],
+      where: {
+        schoolId: schoolId,
+        is_active: true,
+      },
+      group: ["gradeId", "grade"],
+      order: [["grade", "ASC"]],
+    });
+
+    return grades;
   }
 
   /**
@@ -406,23 +529,25 @@ class ClassService {
   async getGradesAndClasses(schoolId) {
     const classes = await getGradesAndClassesFromDB(schoolId);
 
-    // Group classes by grade
+    // Group classes by gradeId
     const gradeMap = {};
 
     classes.forEach((classItem) => {
-      const grade = classItem.grade;
+      const gradeKey = classItem.gradeId || classItem.grade; // Use gradeId as primary key, fallback to grade
 
-      if (!gradeMap[grade]) {
-        gradeMap[grade] = {
-          grade: grade,
+      if (!gradeMap[gradeKey]) {
+        gradeMap[gradeKey] = {
+          gradeId: classItem.gradeId,
+          grade: classItem.grade,
           classes: [],
         };
       }
 
-      gradeMap[grade].classes.push({
-        class_id: classItem.class_id,
-        class_name: classItem.class_name,
+      gradeMap[gradeKey].classes.push({
+        classId: classItem.classId,
+        className: classItem.className,
         section: classItem.section,
+        gradeId: classItem.gradeId,
       });
     });
 

@@ -10,11 +10,14 @@ import { ROLES } from "@school-management/backend-core";
 import {
   createFeeStructure,
   getFeeStructures,
+  getStudentsWithFees,
   updateFeeStructure,
   deleteFeeStructure,
   recordPayment,
   getPaymentHistory,
   generateFeeReport,
+  getFeeTypes,
+  getPaymentMethods,
 } from "../controllers/feeController.js";
 
 const router = express.Router();
@@ -36,6 +39,16 @@ router.get(
   authorize(ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.TEACHER),
   getFeeStructures
 );
+
+router.get(
+  "/get-students-with-fees",
+  auth,
+  populateUserHeaders,
+  requireFeature(DASHBOARD_FEATURES.FEES),
+  authorize(ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.TEACHER),
+  getStudentsWithFees
+);
+
 router.put(
   "/update-fee-structure/:id",
   auth,
@@ -45,7 +58,7 @@ router.put(
   updateFeeStructure
 );
 router.delete(
-  "/delete-fee-structure/:id",
+  "/delete-fee-structure/:feeStructureId",
   auth,
   populateUserHeaders,
   authorize(ROLES.ADMIN),
@@ -74,6 +87,25 @@ router.get(
   populateUserHeaders,
   authorize(ROLES.ADMIN, ROLES.ACCOUNTANT),
   generateFeeReport
+);
+
+// Fee Configuration
+router.get(
+  "/fee-types",
+  auth,
+  populateUserHeaders,
+  requireFeature(DASHBOARD_FEATURES.FEES),
+  authorize(ROLES.ADMIN, ROLES.ACCOUNTANT),
+  getFeeTypes
+);
+
+router.get(
+  "/payment-methods",
+  auth,
+  populateUserHeaders,
+  requireFeature(DASHBOARD_FEATURES.FEES),
+  authorize(ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.TEACHER),
+  getPaymentMethods
 );
 
 export default router;

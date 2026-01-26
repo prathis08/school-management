@@ -1,12 +1,16 @@
 import { Op } from "sequelize";
 import FeeStructure from "../models/FeeStructure.js";
 import Payment from "../models/Payment.js";
+import GradeFees from "../models/GradeFees.js";
 import { Student, Class } from "@school-management/admission";
 import {
   FEE_TYPES,
   PAYMENT_METHODS,
   PAYMENT_STATUS,
 } from "../constants/feeConstants.js";
+import { withTransaction } from "@school-management/backend-core/utils/transactionHelper.js";
+import { generateCustomIdWithPrefix } from "@school-management/backend-core/utils/customIdGenerator.js";
+import { getStudentsWithFeesData } from "../dbCommands/feeDbCommands.js";
 
 class FeeService {
   /**
@@ -16,18 +20,72 @@ class FeeService {
    * @returns {Object} Created fee structure
    */
   async createFeeStructure(feeData, schoolId) {
-    const { className, feeType, amount, dueDate, academicYear } = feeData;
-
-    const feeStructure = await FeeStructure.create({
-      schoolId: schoolId,
-      class_name: className,
-      fee_type: feeType,
+    const {
+      title,
       amount,
-      due_date: dueDate,
-      academic_year: academicYear,
-    });
+      academicSession,
+      applicableGrade,
+      feeType,
+      description,
+      allowInstallments,
+      availableForDiscount,
+      dueDate,
+      isActive,
+      createdDate,
+    } = feeData;
 
-    return feeStructure;
+    // Validate fee type
+    if (feeType && !Object.values(FEE_TYPES).includes(feeType)) {
+      throw new Error(
+        `Invalid fee type. Must be one of: ${Object.values(FEE_TYPES).join(
+          ", ",
+        )}`,
+      );
+    }
+
+    const feeStructureId = generateCustomIdWithPrefix("FEESTRUCTURE");
+
+    // Use transaction to ensure both fee structure and class fees are created atomically
+    return await withTransaction(async (transaction) => {
+      // Create the fee structure
+      const feeStructure = await FeeStructure.create(
+        {
+          feeStructureId,
+          title,
+          amount,
+          academicSession,
+          applicableGrade,
+          feeType,
+          description,
+          allowInstallments,
+          availableForDiscount,
+          dueDate,
+          isActive,
+          createdDate,
+          schoolId,
+        },
+        { transaction },
+      );
+
+      // Create entries in class_fees table
+      // applicableGrade can be a single gradeId or an array of gradeIds
+      const gradeIds = Array.isArray(applicableGrade)
+        ? applicableGrade
+        : [applicableGrade];
+
+      if (gradeIds.length > 0 && gradeIds[0]) {
+        const classFeeEntries = gradeIds.map((gradeId) => ({
+          schoolId,
+          feeStructureId,
+          gradeId,
+          createdDate: new Date(),
+        }));
+
+        await GradeFees.bulkCreate(classFeeEntries, { transaction });
+      }
+
+      return feeStructure;
+    });
   }
 
   /**
@@ -68,7 +126,7 @@ class FeeService {
   async getFeeStructureById(feeStructureId, schoolId) {
     return await FeeStructure.findOne({
       where: {
-        id: feeStructureId,
+        feeStructureId: feeStructureId,
         schoolId: schoolId,
         is_active: true,
       },
@@ -85,7 +143,7 @@ class FeeService {
   async updateFeeStructure(feeStructureId, updateData, schoolId) {
     const feeStructure = await this.getFeeStructureById(
       feeStructureId,
-      schoolId
+      schoolId,
     );
     if (!feeStructure) {
       throw new Error("Fee structure not found");
@@ -93,7 +151,7 @@ class FeeService {
 
     const updateResult = await FeeStructure.update(updateData, {
       where: {
-        id: feeStructureId,
+        feeStructureId: feeStructureId,
         schoolId: schoolId,
       },
     });
@@ -113,13 +171,13 @@ class FeeService {
    */
   async deleteFeeStructure(feeStructureId, schoolId) {
     const deleteResult = await FeeStructure.update(
-      { is_active: false },
+      { isActive: false },
       {
         where: {
-          id: feeStructureId,
+          feeStructureId: feeStructureId,
           schoolId: schoolId,
         },
-      }
+      },
     );
 
     if (deleteResult[0] === 0) {
@@ -145,41 +203,53 @@ class FeeService {
       remarks,
     } = paymentData;
 
-    // Verify fee structure exists
-    const feeStructure = await this.getFeeStructureById(
-      feeStructureId,
-      schoolId
-    );
-    if (!feeStructure) {
-      throw new Error("Fee structure not found");
-    }
+    // Use transaction to ensure atomic operation (verify + create payment)
+    return await withTransaction(async (transaction) => {
+      // Verify fee structure exists
+      const feeStructure = await FeeStructure.findOne({
+        where: {
+          id: feeStructureId,
+          schoolId: schoolId,
+          is_active: true,
+        },
+        transaction,
+      });
 
-    // Verify student exists
-    const student = await Student.findOne({
-      where: {
-        student_id: studentId,
-        schoolId: schoolId,
-        is_active: true,
-      },
+      if (!feeStructure) {
+        throw new Error("Fee structure not found");
+      }
+
+      // Verify student exists
+      const student = await Student.findOne({
+        where: {
+          student_id: studentId,
+          schoolId: schoolId,
+          is_active: true,
+        },
+        transaction,
+      });
+
+      if (!student) {
+        throw new Error("Student not found");
+      }
+
+      const payment = await Payment.create(
+        {
+          schoolId: schoolId,
+          student_id: studentId,
+          fee_structure_id: feeStructureId,
+          amount,
+          payment_method: paymentMethod,
+          payment_status: PAYMENT_STATUS.COMPLETED,
+          transaction_id: transactionId,
+          payment_date: new Date(),
+          remarks,
+        },
+        { transaction },
+      );
+
+      return payment;
     });
-
-    if (!student) {
-      throw new Error("Student not found");
-    }
-
-    const payment = await Payment.create({
-      schoolId: schoolId,
-      student_id: studentId,
-      fee_structure_id: feeStructureId,
-      amount,
-      payment_method: paymentMethod,
-      payment_status: PAYMENT_STATUS.COMPLETED,
-      transaction_id: transactionId,
-      payment_date: new Date(),
-      remarks,
-    });
-
-    return payment;
   }
 
   /**
@@ -351,6 +421,166 @@ class FeeService {
       outstandingFees,
       payments,
     };
+  }
+
+  /**
+   * Get payment history for a student
+   * @param {string} studentId - Student ID
+   * @param {string} schoolId - School ID
+   * @returns {Array} Payment history
+   */
+  async getPaymentHistory(studentId, schoolId) {
+    const payments = await Payment.findAll({
+      where: { student_id: studentId, schoolId },
+      include: [
+        {
+          model: FeeStructure,
+          as: "feeStructure",
+        },
+        {
+          model: Student,
+          as: "student",
+          attributes: ["first_name", "last_name", "roll_number"],
+        },
+      ],
+      order: [["paymentDate", "DESC"]],
+    });
+
+    return payments;
+  }
+
+  /**
+   * Generate fee report
+   * @param {string} schoolId - School ID
+   * @param {Object} filters - Report filters
+   * @returns {Object} Fee report data
+   */
+  async generateFeeReport(schoolId, filters = {}) {
+    const { startDate, endDate, className } = filters;
+
+    const whereClause = { schoolId };
+    if (startDate && endDate) {
+      whereClause.payment_date = {
+        [Op.between]: [new Date(startDate), new Date(endDate)],
+      };
+    }
+
+    const payments = await Payment.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: FeeStructure,
+          as: "feeStructure",
+          where: className ? { class_name: className } : {},
+        },
+        {
+          model: Student,
+          as: "student",
+          attributes: ["firstName", "lastName", "rollNumber"],
+        },
+      ],
+      order: [["paymentDate", "DESC"]],
+    });
+
+    const totalAmount = payments.reduce(
+      (sum, payment) => sum + parseFloat(payment.amount),
+      0,
+    );
+
+    return {
+      payments,
+      summary: {
+        totalPayments: payments.length,
+        totalAmount,
+      },
+    };
+  }
+
+  /**
+   * Get students with fee filters
+   * @param {Object} filters - Filter criteria
+   * @param {string} filters.schoolId - School ID
+   * @param {string} filters.classId - Grade ID (mapped from gradeId parameter, optional)
+   * @param {string} filters.feeType - Fee type (optional)
+   * @param {string} filters.name - Student name (optional)
+   * @returns {Array} Students with their fee information
+   */
+  async getStudentsWithFees(filtersForSearch) {
+    const students = await getStudentsWithFeesData(filtersForSearch);
+
+    const studentsWithFeeInfo = await Promise.all(
+      students.map(async (student) => {
+        const studentData = student.toJSON();
+        let classFeeStructures = [];
+        if (!classFeeStructures.length && studentData.gradeId) {
+          // Get fee structures for this class through GradeFees junction table
+          const classFees = await GradeFees.findAll({
+            where: {
+              gradeId: studentData.gradeId,
+              schoolId: filtersForSearch.schoolId,
+            },
+            include: [
+              {
+                model: FeeStructure,
+                as: "feeStructure",
+                where: {
+                  isActive: true,
+                  ...(filtersForSearch.feeType && {
+                    feeType: filtersForSearch.feeType,
+                  }),
+                },
+                attributes: [
+                  "feeStructureId",
+                  "title",
+                  "amount",
+                  "feeType",
+                  "academicSession",
+                  "dueDate",
+                  "isActive",
+                ],
+              },
+            ],
+          });
+
+          console.log(`Found ${classFees.length} class fee entries`);
+
+          classFeeStructures = classFees
+            .map((classFee) => classFee.feeStructure)
+            .filter(Boolean); // Filter out any null/undefined fee structures
+        }
+
+        // Calculate total fees for the student based on class fee structures
+        const totalFees = classFeeStructures.reduce((sum, feeStructure) => {
+          return sum + parseFloat(feeStructure.amount || 0);
+        }, 0);
+
+        // Calculate total payments made
+        const totalPaid =
+          studentData.payments?.reduce((sum, payment) => {
+            return payment.status === PAYMENT_STATUS.COMPLETED
+              ? sum + parseFloat(payment.amount || 0)
+              : sum;
+          }, 0) || 0;
+
+        // Calculate outstanding amount
+        const outstandingAmount = totalFees - totalPaid;
+
+        console.log(studentData);
+
+        return {
+          ...studentData,
+          feeInfo: {
+            totalFees,
+            totalPaid,
+            outstandingAmount,
+            feeStructures: classFeeStructures,
+            paymentHistory: studentData.payments || [],
+          },
+        };
+      }),
+    );
+
+    return studentsWithFeeInfo;
   }
 }
 

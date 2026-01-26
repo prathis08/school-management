@@ -119,13 +119,17 @@ export const getTeacherById = async (teacherId, schoolId, options = {}) => {
  * Create a new teacher
  * @param {object} teacherData - Teacher data
  * @param {string} schoolId - School identifier
+ * @param {object} options - Sequelize options (including transaction)
  * @returns {Promise<object>} - Created teacher object
  */
-export const createTeacher = async (teacherData, schoolId) => {
-  return await Teacher.create({
-    ...teacherData,
-    schoolId: schoolId,
-  });
+export const createTeacher = async (teacherData, schoolId, options = {}) => {
+  return await Teacher.create(
+    {
+      ...teacherData,
+      schoolId: schoolId,
+    },
+    options
+  );
 };
 
 /**
@@ -133,9 +137,15 @@ export const createTeacher = async (teacherData, schoolId) => {
  * @param {string} teacherId - Custom teacherId (e.g., TEACHER1726412345678901)
  * @param {object} updateData - Data to update
  * @param {string} schoolId - School identifier
+ * @param {object} options - Sequelize options (including transaction)
  * @returns {Promise<array>} - Update result [affectedCount]
  */
-export const updateTeacher = async (teacherId, updateData, schoolId) => {
+export const updateTeacher = async (
+  teacherId,
+  updateData,
+  schoolId,
+  options = {}
+) => {
   if (!teacherId) {
     throw new Error("Teacher identifier is missing");
   }
@@ -145,6 +155,7 @@ export const updateTeacher = async (teacherId, updateData, schoolId) => {
       schoolId: schoolId,
       teacher_id: teacherId,
     },
+    ...options,
   });
 };
 
@@ -152,9 +163,10 @@ export const updateTeacher = async (teacherId, updateData, schoolId) => {
  * Delete teacher (mark as inactive) by teacherId (custom ID only)
  * @param {string} teacherId - Custom teacherId (e.g., TEACHER1726412345678901)
  * @param {string} schoolId - School identifier
+ * @param {object} options - Sequelize options (including transaction)
  * @returns {Promise<array>} - Update result [affectedCount]
  */
-export const deleteTeacher = async (teacherId, schoolId) => {
+export const deleteTeacher = async (teacherId, schoolId, options = {}) => {
   if (!teacherId) {
     throw new Error("Teacher identifier is missing");
   }
@@ -166,6 +178,7 @@ export const deleteTeacher = async (teacherId, schoolId) => {
         schoolId: schoolId,
         teacher_id: teacherId,
       },
+      ...options,
     }
   );
 };

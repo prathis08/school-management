@@ -91,14 +91,22 @@ export const getStudentByNameAndFather = async (
   });
 };
 
-export const createStudent = async (studentData, schoolId) => {
-  return await Student.create({
-    ...studentData,
-    schoolId: schoolId,
-  });
+export const createStudent = async (studentData, schoolId, options = {}) => {
+  return await Student.create(
+    {
+      ...studentData,
+      schoolId: schoolId,
+    },
+    options
+  );
 };
 
-export const updateStudent = async (studentId, updateData, schoolId) => {
+export const updateStudent = async (
+  studentId,
+  updateData,
+  schoolId,
+  options = {}
+) => {
   if (!studentId) {
     throw new Error("Student identifier is missing");
   }
@@ -108,10 +116,11 @@ export const updateStudent = async (studentId, updateData, schoolId) => {
       schoolId: schoolId,
       studentId: studentId,
     },
+    ...options,
   });
 };
 
-export const deleteStudent = async (studentId, schoolId) => {
+export const deleteStudent = async (studentId, schoolId, options = {}) => {
   if (!studentId) {
     throw new Error("Student identifier is missing");
   }
@@ -123,6 +132,7 @@ export const deleteStudent = async (studentId, schoolId) => {
         schoolId: schoolId,
         studentId: studentId,
       },
+      ...options,
     }
   );
 };

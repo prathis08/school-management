@@ -50,7 +50,7 @@ export const getAllClasses = async (schoolId, options = {}) => {
     Class,
     schoolId,
     { is_active: true },
-    defaultOptions
+    defaultOptions,
   );
 };
 
@@ -91,7 +91,7 @@ export const getClassById = async (classId, schoolId, options = {}) => {
     classId,
     schoolId,
     "class_id",
-    defaultOptions
+    defaultOptions,
   );
 };
 
@@ -118,7 +118,7 @@ export const updateClass = async (classId, updated_ata, schoolId) => {
     updated_ata,
     classId,
     schoolId,
-    "class_id"
+    "class_id",
   );
 };
 
@@ -134,7 +134,7 @@ export const deleteClass = async (classId, schoolId) => {
     { is_active: false },
     classId,
     schoolId,
-    "class_id"
+    "class_id",
   );
 };
 
@@ -145,7 +145,7 @@ export const deleteClass = async (classId, schoolId) => {
  */
 export const getGradesAndClasses = async (schoolId) => {
   return await Class.findAll({
-    attributes: ["class_id", "class_name", "grade", "section"],
+    attributes: ["classId", "className", "grade", "section", "gradeId"],
     where: {
       schoolId: schoolId,
       is_active: true,

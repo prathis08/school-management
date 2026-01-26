@@ -35,6 +35,10 @@ const Class = sequelize.define(
       type: DataTypes.STRING(50),
       allowNull: true,
     },
+    gradeId: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
     grade: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -62,7 +66,7 @@ const Class = sequelize.define(
     freezeTableName: true,
     timestamps: true,
     underscored: true, // This makes Sequelize use snake_case for timestamps
-  }
+  },
 );
 
 export default Class;

@@ -13,6 +13,7 @@ import {
   deleteByIdAndSchool,
   findByIdentifier,
 } from "../dbCommands/genericDbCommands.js";
+import { withTransaction } from "@school-management/backend-core/utils/transactionHelper.js";
 
 class SubjectService {
   /**
@@ -224,38 +225,46 @@ class SubjectService {
    * @returns {boolean} Success status
    */
   async assignTeacherToSubject(subjectId, teacherId, schoolId) {
-    // Find subject
-    const subject = await findByIdentifier(Subject, subjectId);
-    if (!subject) {
-      throw new Error("Subject not found");
-    }
+    return await withTransaction(async (transaction) => {
+      // Find subject
+      const subject = await findByIdentifier(Subject, subjectId, {
+        transaction,
+      });
+      if (!subject) {
+        throw new Error("Subject not found");
+      }
 
-    // Verify subject belongs to the school
-    if (subject.schoolId !== schoolId) {
-      throw new Error("Subject does not belong to your school");
-    }
+      // Verify subject belongs to the school
+      if (subject.schoolId !== schoolId) {
+        throw new Error("Subject does not belong to your school");
+      }
 
-    // Find teacher
-    const teacher = await findByIdentifier(Teacher, teacherId);
-    if (!teacher) {
-      throw new Error("Teacher not found");
-    }
+      // Find teacher
+      const teacher = await findByIdentifier(Teacher, teacherId, {
+        transaction,
+      });
+      if (!teacher) {
+        throw new Error("Teacher not found");
+      }
 
-    // Verify teacher belongs to the school
-    if (teacher.schoolId !== schoolId) {
-      throw new Error("Teacher does not belong to your school");
-    }
+      // Verify teacher belongs to the school
+      if (teacher.schoolId !== schoolId) {
+        throw new Error("Teacher does not belong to your school");
+      }
 
-    // Check if teacher is already assigned to this subject
-    const existingAssignment = await subject.hasTeacher(teacher);
-    if (existingAssignment) {
-      throw new Error("Teacher is already assigned to this subject");
-    }
+      // Check if teacher is already assigned to this subject
+      const existingAssignment = await subject.hasTeacher(teacher, {
+        transaction,
+      });
+      if (existingAssignment) {
+        throw new Error("Teacher is already assigned to this subject");
+      }
 
-    // Add teacher to subject
-    await subject.addTeacher(teacher);
+      // Add teacher to subject
+      await subject.addTeacher(teacher, { transaction });
 
-    return true;
+      return true;
+    });
   }
 
   /**
@@ -266,33 +275,41 @@ class SubjectService {
    * @returns {boolean} Success status
    */
   async unassignTeacherFromSubject(subjectId, teacherId, schoolId) {
-    // Find subject
-    const subject = await findByIdentifier(Subject, subjectId);
-    if (!subject) {
-      throw new Error("Subject not found");
-    }
+    return await withTransaction(async (transaction) => {
+      // Find subject
+      const subject = await findByIdentifier(Subject, subjectId, {
+        transaction,
+      });
+      if (!subject) {
+        throw new Error("Subject not found");
+      }
 
-    // Verify subject belongs to the school
-    if (subject.schoolId !== schoolId) {
-      throw new Error("Subject does not belong to your school");
-    }
+      // Verify subject belongs to the school
+      if (subject.schoolId !== schoolId) {
+        throw new Error("Subject does not belong to your school");
+      }
 
-    // Find teacher
-    const teacher = await findByIdentifier(Teacher, teacherId);
-    if (!teacher) {
-      throw new Error("Teacher not found");
-    }
+      // Find teacher
+      const teacher = await findByIdentifier(Teacher, teacherId, {
+        transaction,
+      });
+      if (!teacher) {
+        throw new Error("Teacher not found");
+      }
 
-    // Check if teacher is assigned to this subject
-    const existingAssignment = await subject.hasTeacher(teacher);
-    if (!existingAssignment) {
-      throw new Error("Teacher is not assigned to this subject");
-    }
+      // Check if teacher is assigned to this subject
+      const existingAssignment = await subject.hasTeacher(teacher, {
+        transaction,
+      });
+      if (!existingAssignment) {
+        throw new Error("Teacher is not assigned to this subject");
+      }
 
-    // Remove teacher from subject
-    await subject.removeTeacher(teacher);
+      // Remove teacher from subject
+      await subject.removeTeacher(teacher, { transaction });
 
-    return true;
+      return true;
+    });
   }
 }
 

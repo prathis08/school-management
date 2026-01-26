@@ -13,6 +13,7 @@ import {
   TASK_PRIORITY,
   VALIDATION,
 } from "../constants/taskConstants.js";
+import { withTransaction } from "@school-management/backend-core/utils/transactionHelper.js";
 
 class TaskService {
   /**
@@ -32,7 +33,10 @@ class TaskService {
         }
       }
 
-      const task = await createTaskDb(taskData, schoolId, userId);
+      // Use transaction for task creation (creates task + history)
+      const task = await withTransaction(async (transaction) => {
+        return await createTaskDb(taskData, schoolId, userId, { transaction });
+      });
 
       return {
         success: true,
@@ -125,7 +129,12 @@ class TaskService {
         }
       }
 
-      const task = await updateTaskDb(taskId, updateData, schoolId, userId);
+      // Use transaction for task update (updates task + creates history)
+      const task = await withTransaction(async (transaction) => {
+        return await updateTaskDb(taskId, updateData, schoolId, userId, {
+          transaction,
+        });
+      });
 
       if (!task) {
         throw new Error("Task not found");
@@ -151,7 +160,10 @@ class TaskService {
         throw new Error("Task ID is required");
       }
 
-      const success = await deleteTaskDb(taskId, schoolId, userId);
+      // Use transaction for task deletion (soft delete + creates history)
+      const success = await withTransaction(async (transaction) => {
+        return await deleteTaskDb(taskId, schoolId, userId, { transaction });
+      });
 
       if (!success) {
         throw new Error("Task not found");
@@ -188,12 +200,16 @@ class TaskService {
         throw new Error("Comment content cannot exceed 2000 characters");
       }
 
-      const comment = await addTaskCommentDb(
-        taskId,
-        content.trim(),
-        schoolId,
-        userId
-      );
+      // Use transaction for comment addition (creates comment + history)
+      const comment = await withTransaction(async (transaction) => {
+        return await addTaskCommentDb(
+          taskId,
+          content.trim(),
+          schoolId,
+          userId,
+          { transaction }
+        );
+      });
 
       if (!comment) {
         throw new Error("Task not found");

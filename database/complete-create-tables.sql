@@ -1,31 +1,3 @@
---
--- PostgreSQL database dump - For mgmt-backend user (after permissions granted)
---
-
--- Dumped from database version 14.17 (Homebrew)
--- Dumped by pg_dump version 14.17 (Homebrew)
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
-
-
-
-SET default_tablespace = '';
-
-SET default_table_access_method = heap;
-
---
--- Name: users; Type: TABLE; Schema: public; Owner: mgmt-backend
---
-
 CREATE TABLE public.users (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id character varying(255) UNIQUE,
@@ -75,6 +47,7 @@ CREATE TABLE public.class (
     class_teacher_id character varying(255),
     class_name character varying(255),
     school_id character varying(50),
+    grade_id character varying(255) NOT NULL,
     grade character varying(255),
     section character varying(255),
     max_students integer,
@@ -116,7 +89,7 @@ CREATE TABLE public.teacher (
     qualification character varying(255),
     experience integer,
     date_of_joining date,
-    salary numeric(10,2),
+    salary numeric(10,2) NULL,
     phone character varying(255),
     address jsonb,
     is_active boolean DEFAULT true,
@@ -140,7 +113,7 @@ CREATE TABLE public.student (
     last_name character varying(255),
     email character varying(255),
     phone character varying(255),
-    grade character varying(255),
+    grade_id character varying(255),
     roll_number character varying(255),
     date_of_birth date,
     gender character varying(50),
@@ -240,12 +213,17 @@ CREATE TABLE public.results (
 CREATE TABLE public.fee_structures (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     fee_structure_id character varying(255) UNIQUE,
-    school_id character varying(255),
-    class_name character varying(255),
-    fee_type character varying(50),
-    amount numeric(10,2),
-    due_date date,
-    academic_year character varying(255),
+    school_id character varying(255) NOT NULL,
+    title character varying(255) NOT NULL,
+    amount numeric(10,2) NOT NULL,
+    academic_session character varying(255) NOT NULL,
+    applicable_grade character varying(255) NOT NULL,
+    fee_type character varying(255) NOT NULL,
+    description text,
+    allow_installments boolean DEFAULT false,
+    available_for_discount boolean DEFAULT false,
+    due_date date NOT NULL,
+    created_date timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     is_active boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
@@ -352,6 +330,16 @@ CREATE TABLE public.stops (
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE public.grade_fees (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    school_id character varying(255) NOT NULL,
+    fee_structure_id character varying(255) NOT NULL,
+    grade_id character varying(255) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_school_fee_grade UNIQUE (school_id, fee_structure_id, grade_id)
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_users_email ON public.users(email);
 CREATE INDEX idx_users_role ON public.users(role);
@@ -366,6 +354,12 @@ CREATE INDEX idx_results_exam_id ON public.results(exam_id);
 CREATE INDEX idx_payments_student_id ON public.payments(student_id);
 CREATE INDEX idx_tokens_user_id ON public.tokens(user_id);
 CREATE INDEX idx_tokens_expires_at ON public.tokens(expires_at);
+CREATE INDEX idx_class_grade_id ON public.class(grade_id);
+CREATE INDEX idx_student_grade_id ON public.student(grade_id);
+CREATE INDEX idx_grade_fees_school_id ON public.grade_fees(school_id);
+CREATE INDEX idx_grade_fees_fee_structure_id ON public.grade_fees(fee_structure_id);
+CREATE INDEX idx_grade_fees_grade_id ON public.grade_fees(grade_id);
+CREATE INDEX idx_fee_structures_school_grade ON public.fee_structures(school_id, applicable_grade);
 
 --
 -- PostgreSQL database dump complete

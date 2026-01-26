@@ -136,7 +136,7 @@ const updateClass = async (req, res) => {
     const updatedClass = await ClassService.updateClass(
       req.params.id,
       req.body,
-      schoolId
+      schoolId,
     );
 
     res.status(200).json({
@@ -229,7 +229,7 @@ const addStudentToClass = async (req, res) => {
     const result = await ClassService.addStudentToClass(
       req.params.id,
       studentId,
-      schoolId
+      schoolId,
     );
 
     res.status(200).json({
@@ -266,13 +266,79 @@ const addStudentToClass = async (req, res) => {
   }
 };
 
+// @desc    Get classes by gradeId
+// @route   GET /api/classes/by-grade-id/:gradeId
+// @access  Private
+const getClassesByGradeId = async (req, res) => {
+  try {
+    const schoolId = req.user.schoolId;
+    if (!schoolId) {
+      return res.status(400).json({
+        success: false,
+        message: "School ID is required",
+      });
+    }
+
+    const { gradeId } = req.params;
+    if (!gradeId) {
+      return res.status(400).json({
+        success: false,
+        message: "Grade ID is required",
+      });
+    }
+
+    const classes = await ClassService.getClassesByGradeId(gradeId, schoolId);
+
+    res.status(200).json({
+      success: true,
+      data: classes,
+      total: classes.length,
+    });
+  } catch (error) {
+    console.error("Get classes by grade ID error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching classes by grade ID",
+    });
+  }
+};
+
+// @desc    Get all unique grades with their gradeIds
+// @route   GET /api/classes/grades-list
+// @access  Private
+const getGradesList = async (req, res) => {
+  try {
+    const schoolId = req.user.schoolId;
+    if (!schoolId) {
+      return res.status(400).json({
+        success: false,
+        message: "School ID is required",
+      });
+    }
+
+    const grades = await ClassService.getGradesList(schoolId);
+
+    res.status(200).json({
+      success: true,
+      data: grades,
+      total: grades.length,
+    });
+  } catch (error) {
+    console.error("Get grades list error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching grades list",
+    });
+  }
+};
+
 // @desc    Get grades and classes list
 // @route   GET /api/classes/grades-and-classes
 // @access  Private
 const getGradesAndClasses = async (req, res) => {
   try {
     // Get schoolId from authenticated user
-    const schoolId = req.user.schoolId;
+    const schoolId = req.schoolId;
     if (!schoolId) {
       return res.status(400).json({
         success: false,
@@ -327,6 +393,8 @@ export default {
   updateClass,
   deleteClass,
   addStudentToClass,
+  getClassesByGradeId,
+  getGradesList,
   getGradesAndClasses,
   getGradesOptions,
 };

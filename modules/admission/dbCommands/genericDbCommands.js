@@ -135,13 +135,17 @@ export const countBySchool = async (Model, schoolId, where = {}) => {
  * @param {object} Model - Sequelize model
  * @param {object} data - Record data
  * @param {string} schoolId - School identifier
+ * @param {object} options - Sequelize options (including transaction)
  * @returns {Promise<object>} - Created record
  */
-export const createWithSchool = async (Model, data, schoolId) => {
-  return await Model.create({
-    ...data,
-    schoolId: schoolId,
-  });
+export const createWithSchool = async (Model, data, schoolId, options = {}) => {
+  return await Model.create(
+    {
+      ...data,
+      schoolId: schoolId,
+    },
+    options
+  );
 };
 
 /**
@@ -150,14 +154,22 @@ export const createWithSchool = async (Model, data, schoolId) => {
  * @param {object} updated_ata - Data to update
  * @param {string} id - Record ID (UUID)
  * @param {string} schoolId - School identifier
+ * @param {object} options - Sequelize options (including transaction)
  * @returns {Promise<array>} - Update result [affectedCount]
  */
-export const updateByIdAndSchool = async (Model, updated_ata, id, schoolId) => {
+export const updateByIdAndSchool = async (
+  Model,
+  updated_ata,
+  id,
+  schoolId,
+  options = {}
+) => {
   return await Model.update(updated_ata, {
     where: {
       id,
       schoolId: schoolId,
     },
+    ...options,
   });
 };
 
@@ -168,6 +180,7 @@ export const updateByIdAndSchool = async (Model, updated_ata, id, schoolId) => {
  * @param {string} customId - Custom ID value
  * @param {string} schoolId - School identifier
  * @param {string} customIdField - Custom ID field name
+ * @param {object} options - Sequelize options (including transaction)
  * @returns {Promise<array>} - Update result [affectedCount]
  */
 export const updateByCustomIdAndSchool = async (
@@ -175,13 +188,15 @@ export const updateByCustomIdAndSchool = async (
   updated_ata,
   customId,
   schoolId,
-  customIdField
+  customIdField,
+  options = {}
 ) => {
   return await Model.update(updated_ata, {
     where: {
       [customIdField]: customId,
       schoolId: schoolId,
     },
+    ...options,
   });
 };
 

@@ -39,13 +39,6 @@ const validateUserRegistration = [
       ROLES.ADMIN,
     ])
     .withMessage("Role must be teacher or student"),
-
-  body("schoolId")
-    .trim()
-    .notEmpty()
-    .withMessage("School ID is required")
-    .isLength({ min: 1, max: 50 })
-    .withMessage("School ID must contain only alphanumeric characters"),
 ];
 
 // User login validation
@@ -74,13 +67,6 @@ const validateStudentCreation = [
 const validateTeacherCreation = [
   ...validateUserRegistration,
 
-  body("employeeId")
-    .trim()
-    .notEmpty()
-    .withMessage("Employee ID is required")
-    .isLength({ min: 3, max: 20 })
-    .withMessage("Employee ID must be between 3 and 20 characters"),
-
   body("department").trim().notEmpty().withMessage("Department is required"),
 
   // body("qualification")
@@ -88,9 +74,9 @@ const validateTeacherCreation = [
   //   .notEmpty()
   //   .withMessage("Qualification is required"),
 
-  // body("experience")
-  //   .isInt({ min: 0 })
-  //   .withMessage("Experience must be a non-negative number"),
+  body("experience")
+    .isInt({ min: 0 })
+    .withMessage("Experience must be a non-negative number"),
 
   body("dateOfJoining")
     .isISO8601()
@@ -103,13 +89,6 @@ const validateTeacherCreation = [
 
 // Class creation validation
 const validateClassCreation = [
-  body("className")
-    .trim()
-    .notEmpty()
-    .withMessage("Class name is required")
-    .isLength({ min: 2, max: 50 })
-    .withMessage("Class name must be between 2 and 50 characters"),
-
   body("schoolId")
     .optional()
     .trim()
@@ -121,6 +100,12 @@ const validateClassCreation = [
   body("grade").trim().notEmpty().withMessage("Grade is required"),
 
   body("section").trim().notEmpty().withMessage("Section is required"),
+
+  body("gradeId")
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage("Grade ID must be between 1 and 50 characters"),
 
   body("maxStudents")
     .optional()
@@ -145,7 +130,7 @@ const validateSubjectCreation = [
     .withMessage("Subject code must be between 2 and 10 characters")
     .matches(/^[A-Z0-9]+$/)
     .withMessage(
-      "Subject code must contain only uppercase letters and numbers"
+      "Subject code must contain only uppercase letters and numbers",
     ),
 
   body("schoolId")

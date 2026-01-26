@@ -1,9 +1,20 @@
+import { Op } from "sequelize";
 import {
   FeeStructure,
   Payment,
   Student,
   User,
+  Class,
+  GradeFees,
 } from "@school-management/backend-core/models/index.js";
+import {
+  findAllBySchool,
+  findByCustomIdAndSchool,
+  createWithSchool,
+  updateByCustomIdAndSchool,
+} from "../../admission/dbCommands/genericDbCommands.js";
+import { PAYMENT_STATUS } from "../constants/feeConstants.js";
+import ClassService from "@school-management/admission/services/ClassService.js";
 
 /**
  * Get all fee structures for a school
@@ -21,7 +32,7 @@ export const getAllFeeStructures = async (schoolId, options = {}) => {
     FeeStructure,
     schoolId,
     { isActive: true },
-    defaultOptions
+    defaultOptions,
   );
 };
 
@@ -35,14 +46,14 @@ export const getAllFeeStructures = async (schoolId, options = {}) => {
 export const getFeeStructureById = async (
   feeStructureId,
   schoolId,
-  options = {}
+  options = {},
 ) => {
   return await findByCustomIdAndSchool(
     FeeStructure,
     feeStructureId,
     schoolId,
     "feeStructureId",
-    options
+    options,
   );
 };
 
@@ -66,14 +77,14 @@ export const createFeeStructure = async (feeStructureData, schoolId) => {
 export const updateFeeStructure = async (
   feeStructureId,
   updated_ata,
-  schoolId
+  schoolId,
 ) => {
   return await updateByCustomIdAndSchool(
     FeeStructure,
     updated_ata,
     feeStructureId,
     schoolId,
-    "feeStructureId"
+    "feeStructureId",
   );
 };
 
@@ -89,7 +100,7 @@ export const deleteFeeStructure = async (feeStructureId, schoolId) => {
     { isActive: false },
     feeStructureId,
     schoolId,
-    "feeStructureId"
+    "feeStructureId",
   );
 };
 
@@ -153,7 +164,7 @@ export const getPaymentById = async (paymentId, schoolId, options = {}) => {
     paymentId,
     schoolId,
     "paymentId",
-    defaultOptions
+    defaultOptions,
   );
 };
 
@@ -180,7 +191,7 @@ export const updatePayment = async (paymentId, updated_ata, schoolId) => {
     updated_ata,
     paymentId,
     schoolId,
-    "paymentId"
+    "paymentId",
   );
 };
 
@@ -196,6 +207,68 @@ export const deletePayment = async (paymentId, schoolId) => {
     { status: "cancelled" },
     paymentId,
     schoolId,
-    "paymentId"
+    "paymentId",
   );
+};
+
+export const getStudentsWithFeesData = async (filters) => {
+  const { schoolId, gradeId, classId, feeType, name } = filters;
+
+  const whereConditions = {
+    schoolId,
+  };
+
+  // Add student name filter if provided
+  if (name) {
+    whereConditions[Op.or] = [
+      {
+        firstName: {
+          [Op.iLike]: `%${name}%`,
+        },
+      },
+      {
+        lastName: {
+          [Op.iLike]: `%${name}%`,
+        },
+      },
+      {
+        [Op.and]: [
+          {
+            firstName: {
+              [Op.iLike]: `%${name.split(" ")[0]}%`,
+            },
+          },
+          {
+            lastName: {
+              [Op.iLike]: `%${name.split(" ")[1] || ""}%`,
+            },
+          },
+        ],
+      },
+    ];
+  }
+
+  // Add class filter if provided
+  if (gradeId) {
+    whereConditions.gradeId = gradeId;
+  }
+  if (classId) {
+    whereConditions.classId = classId;
+  }
+
+  return await Student.findAll({
+    where: whereConditions,
+    attributes: [
+      "studentId",
+      "firstName",
+      "lastName",
+      "email",
+      "phone",
+      "gradeId",
+      "classId",
+      "enrollmentDate",
+      "isActive",
+    ],
+    order: [["firstName", "ASC"]],
+  });
 };

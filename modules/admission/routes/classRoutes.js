@@ -14,6 +14,8 @@ const {
   updateClass,
   deleteClass,
   addStudentToClass,
+  getClassesByGradeId,
+  getGradesList,
   getGradesAndClasses,
   getGradesOptions,
 } = classController;
@@ -23,6 +25,21 @@ const {
 // @access  Private
 router.get("/get-all-classes", auth, populateUserHeaders, getAllClasses);
 
+// @route   GET /api/classes/by-grade-id/:gradeId
+// @desc    Get classes by grade ID
+// @access  Private
+router.get(
+  "/by-grade-id/:gradeId",
+  auth,
+  populateUserHeaders,
+  getClassesByGradeId,
+);
+
+// @route   GET /api/classes/grades-list
+// @desc    Get all unique grades with their gradeIds
+// @access  Private
+router.get("/grades-list", auth, populateUserHeaders, getGradesList);
+
 // @route   GET /api/classes/grades-and-classes
 // @desc    Get grades and class list
 // @access  Private
@@ -30,7 +47,7 @@ router.get(
   "/grades-and-classes",
   auth,
   populateUserHeaders,
-  getGradesAndClasses
+  getGradesAndClasses,
 );
 
 // @route   GET /api/classes/:id
@@ -47,7 +64,7 @@ router.post(
   populateUserHeaders,
   authorize(ROLES.ADMIN),
   validateClassCreation,
-  createClass
+  createClass,
 );
 
 router.get("/get-grades-options", auth, populateUserHeaders, getGradesOptions);
@@ -60,7 +77,7 @@ router.put(
   auth,
   populateUserHeaders,
   authorize(ROLES.ADMIN),
-  updateClass
+  updateClass,
 );
 
 // @route   DELETE /api/classes/:id
@@ -71,7 +88,7 @@ router.delete(
   auth,
   populateUserHeaders,
   authorize(ROLES.ADMIN),
-  deleteClass
+  deleteClass,
 );
 
 // @route   POST /api/classes/:id/students
@@ -82,7 +99,7 @@ router.post(
   auth,
   populateUserHeaders,
   authorize(ROLES.ADMIN),
-  addStudentToClass
+  addStudentToClass,
 );
 
 export default router;
