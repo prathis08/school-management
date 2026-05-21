@@ -15,6 +15,8 @@ import {
   authRoutes,
   featureRoutes,
   dashboardRoutes,
+  userDataRoutes,
+  settingsRoutes,
 } from "../modules/backend-core/index.js";
 
 import {
@@ -49,6 +51,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/features", featureRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/profile", userDataRoutes);
+app.use("/api/settings", settingsRoutes);
 
 // Routes - Admission Module
 app.use("/api/students", studentRoutes);

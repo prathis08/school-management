@@ -23,7 +23,7 @@ export const findAllBySchool = async (
   Model,
   schoolId,
   where = {},
-  options = {}
+  options = {},
 ) => {
   return await Model.findAll({
     where: {
@@ -66,7 +66,7 @@ export const findByCustomIdAndSchool = async (
   customId,
   schoolId,
   customIdField,
-  options = {}
+  options = {},
 ) => {
   return await Model.findOne({
     where: {
@@ -91,7 +91,7 @@ export const findByIdentifierAndSchool = async (
   identifier,
   schoolId,
   customIdField = null,
-  options = {}
+  options = {},
 ) => {
   const whereConditions = {
     schoolId: schoolId,
@@ -144,7 +144,7 @@ export const createWithSchool = async (Model, data, schoolId, options = {}) => {
       ...data,
       schoolId: schoolId,
     },
-    options
+    options,
   );
 };
 
@@ -162,7 +162,7 @@ export const updateByIdAndSchool = async (
   updated_ata,
   id,
   schoolId,
-  options = {}
+  options = {},
 ) => {
   return await Model.update(updated_ata, {
     where: {
@@ -189,7 +189,7 @@ export const updateByCustomIdAndSchool = async (
   customId,
   schoolId,
   customIdField,
-  options = {}
+  options = {},
 ) => {
   return await Model.update(updated_ata, {
     where: {
@@ -209,13 +209,13 @@ export const updateByCustomIdAndSchool = async (
  */
 export const deleteByIdAndSchool = async (Model, id, schoolId) => {
   return await Model.update(
-    { is_active: false },
+    { isActive: false },
     {
       where: {
         id,
         schoolId: schoolId,
       },
-    }
+    },
   );
 };
 

@@ -69,4 +69,11 @@ const Class = sequelize.define(
   },
 );
 
+// Exclude UUID id from JSON responses to frontend
+Class.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  delete values.id;
+  return values;
+};
+
 export default Class;

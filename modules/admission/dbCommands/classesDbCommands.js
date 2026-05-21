@@ -35,7 +35,7 @@ export const getAllClasses = async (schoolId, options = {}) => {
       {
         model: Student,
         as: "students",
-        attributes: ["id", "student_id"],
+        attributes: ["student_id"],
         required: false,
       },
     ],
@@ -49,7 +49,7 @@ export const getAllClasses = async (schoolId, options = {}) => {
   return await findAllBySchool(
     Class,
     schoolId,
-    { is_active: true },
+    { isActive: true },
     defaultOptions,
   );
 };
@@ -118,7 +118,7 @@ export const updateClass = async (classId, updated_ata, schoolId) => {
     updated_ata,
     classId,
     schoolId,
-    "class_id",
+    "classId",
   );
 };
 
@@ -131,10 +131,10 @@ export const updateClass = async (classId, updated_ata, schoolId) => {
 export const deleteClass = async (classId, schoolId) => {
   return await updateByCustomIdAndSchool(
     Class,
-    { is_active: false },
+    { isActive: false },
     classId,
     schoolId,
-    "class_id",
+    "classId",
   );
 };
 
@@ -148,7 +148,7 @@ export const getGradesAndClasses = async (schoolId) => {
     attributes: ["classId", "className", "grade", "section", "gradeId"],
     where: {
       schoolId: schoolId,
-      is_active: true,
+      isActive: true,
     },
     order: [
       ["grade", "ASC"],

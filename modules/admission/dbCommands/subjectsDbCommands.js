@@ -125,12 +125,12 @@ export const deleteSubject = async (subjectId, schoolId) => {
   }
 
   return await Subject.update(
-    { is_active: false },
+    { isActive: false },
     {
       where: {
         schoolId: schoolId,
-        subject_id: subjectId,
+        subjectId: subjectId,
       },
-    }
+    },
   );
 };

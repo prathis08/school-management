@@ -1,4 +1,4 @@
-import { Op } from "sequelize";
+import { json, Op } from "sequelize";
 import {
   Class,
   Teacher,
@@ -159,7 +159,7 @@ class ClassService {
       where: {
         className: className,
         schoolId: schoolId,
-        is_active: true,
+        isActive: true,
       },
     });
     if (existingClass) {
@@ -173,7 +173,7 @@ class ClassService {
           grade,
           section,
           schoolId: schoolId,
-          is_active: true,
+          isActive: true,
         },
       });
       if (existingGradeSection) {
@@ -191,7 +191,7 @@ class ClassService {
         where: {
           grade,
           schoolId: schoolId,
-          is_active: true,
+          isActive: true,
         },
         attributes: ["gradeId"],
       });
@@ -260,10 +260,10 @@ class ClassService {
     ) {
       const classNameExists = await Class.findOne({
         where: {
-          class_name: updateData.className,
+          className: updateData.className,
           schoolId: schoolId,
-          is_active: true,
-          id: { [Op.ne]: existingClass.id }, // Exclude current class
+          isActive: true,
+          classId: { [Op.ne]: existingClass.classId }, // Exclude current class
         },
       });
       if (classNameExists) {
@@ -285,8 +285,8 @@ class ClassService {
           grade,
           section,
           schoolId: schoolId,
-          is_active: true,
-          id: { [Op.ne]: existingClass.id }, // Exclude current class
+          isActive: true,
+          classId: { [Op.ne]: existingClass.classId }, // Exclude current class
         },
       });
       if (gradeSectionExists) {
@@ -303,8 +303,8 @@ class ClassService {
         where: {
           grade: updateData.grade,
           schoolId: schoolId,
-          is_active: true,
-          id: { [Op.ne]: existingClass.id },
+          isActive: true,
+          classId: { [Op.ne]: existingClass.classId },
         },
         attributes: ["gradeId"],
       });
@@ -360,8 +360,8 @@ class ClassService {
     // Check if class has active students
     const activeStudents = await Student.count({
       where: {
-        class_id: existingClass.id,
-        is_active: true,
+        classId: existingClass.classId,
+        isActive: true,
       },
     });
 
@@ -413,7 +413,7 @@ class ClassService {
 
       // Get current student count in class
       const currentStudents = await Student.count({
-        where: { class_id: classData.id, is_active: true },
+        where: { classId: classData.classId, isActive: true },
         transaction,
       });
 
@@ -465,7 +465,7 @@ class ClassService {
       where: {
         gradeId: gradeId,
         schoolId: schoolId,
-        is_active: true,
+        isActive: true,
       },
       include: [
         {
@@ -512,7 +512,7 @@ class ClassService {
       attributes: ["gradeId", "grade"],
       where: {
         schoolId: schoolId,
-        is_active: true,
+        isActive: true,
       },
       group: ["gradeId", "grade"],
       order: [["grade", "ASC"]],

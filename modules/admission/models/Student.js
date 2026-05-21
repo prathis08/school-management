@@ -37,6 +37,11 @@ const Student = sequelize.define(
       type: DataTypes.STRING,
       unique: true,
     },
+    admissionNumber: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "admission_number",
+    },
     schoolId: {
       type: DataTypes.STRING(50),
       allowNull: true,
@@ -121,7 +126,7 @@ const Student = sequelize.define(
       defaultValue: DataTypes.NOW,
     },
     status: {
-      type: DataTypes.STRING,
+      type: DataTypes.ENUM("Active", "Inactive", "Graduated"),
       defaultValue: "Active",
     },
     subjects: {
@@ -146,6 +151,12 @@ const Student = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    // Optional link to a staff member at the school ({ isStaffWard, staffId, staffName, relation }).
+    staffRelation: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: {},
+    },
   },
   {
     freezeTableName: true,
@@ -153,5 +164,13 @@ const Student = sequelize.define(
     underscored: true, // This makes Sequelize use snake_case for timestamps
   },
 );
+
+// Exclude UUID id and userId from JSON responses to frontend
+Student.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  delete values.id;
+  delete values.userId;
+  return values;
+};
 
 export default Student;

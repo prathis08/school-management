@@ -70,7 +70,14 @@ const Subject = sequelize.define(
     freezeTableName: true,
     timestamps: true,
     underscored: true, // This makes Sequelize use snake_case for timestamps
-  }
+  },
 );
+
+// Exclude UUID id from JSON responses to frontend
+Subject.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  delete values.id;
+  return values;
+};
 
 export default Subject;

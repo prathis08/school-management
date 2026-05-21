@@ -40,10 +40,10 @@ class AuthService {
     const expiresInMs = expiresIn.includes("d")
       ? parseInt(expiresIn) * 24 * 60 * 60 * 1000
       : expiresIn.includes("h")
-      ? parseInt(expiresIn) * 60 * 60 * 1000
-      : expiresIn.includes("m")
-      ? parseInt(expiresIn) * 60 * 1000
-      : 24 * 60 * 60 * 1000; // default to 1 day
+        ? parseInt(expiresIn) * 60 * 60 * 1000
+        : expiresIn.includes("m")
+          ? parseInt(expiresIn) * 60 * 1000
+          : 24 * 60 * 60 * 1000; // default to 1 day
 
     expiresAt.setTime(expiresAt.getTime() + expiresInMs);
 
@@ -88,7 +88,7 @@ class AuthService {
       process.env.JWT_SECRET,
       {
         expiresIn: refreshExpire,
-      }
+      },
     );
 
     // Calculate expiration date for refresh token
@@ -96,10 +96,10 @@ class AuthService {
     const expiresInMs = refreshExpire.includes("d")
       ? parseInt(refreshExpire) * 24 * 60 * 60 * 1000
       : refreshExpire.includes("h")
-      ? parseInt(refreshExpire) * 60 * 60 * 1000
-      : refreshExpire.includes("m")
-      ? parseInt(refreshExpire) * 60 * 1000
-      : 7 * 24 * 60 * 60 * 1000; // default to 7 days
+        ? parseInt(refreshExpire) * 60 * 60 * 1000
+        : refreshExpire.includes("m")
+          ? parseInt(refreshExpire) * 60 * 1000
+          : 7 * 24 * 60 * 60 * 1000; // default to 7 days
 
     expiresAt.setTime(expiresAt.getTime() + expiresInMs);
 
@@ -162,7 +162,7 @@ class AuthService {
 
     if (existingUserByEmail) {
       throw new Error(
-        "User with this email and school ID combination already exists"
+        "User with this email and school ID combination already exists",
       );
     }
 

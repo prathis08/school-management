@@ -1,5 +1,6 @@
 import { validationResult } from "express-validator";
 import StudentService from "../services/StudentService.js";
+import { getStudentStatusValues } from "../constants/admissionConstants.js";
 
 // @desc    Get all students
 // @route   GET /api/students
@@ -17,6 +18,7 @@ const getAllStudents = async (req, res) => {
     const options = {
       page: req.query.page,
       limit: req.query.limit,
+      gradeId: req.query.gradeId,
     };
 
     const result = await StudentService.getAllStudents(schoolId, options);
@@ -49,7 +51,7 @@ const getStudentById = async (req, res) => {
 
     const student = await StudentService.getStudentById(
       req.params.id,
-      schoolId
+      schoolId,
     );
 
     if (!student) {
@@ -98,7 +100,7 @@ const createStudent = async (req, res) => {
 
     const createdStudent = await StudentService.createStudent(
       req.body,
-      schoolId
+      schoolId,
     );
 
     res.status(201).json({
@@ -148,7 +150,7 @@ const updateStudent = async (req, res) => {
     const updatedStudent = await StudentService.updateStudent(
       studentId,
       req.body,
-      schoolId
+      schoolId,
     );
 
     res.status(200).json({
@@ -207,10 +209,68 @@ const deleteStudent = async (req, res) => {
   }
 };
 
+// @desc    Search students by name or ID
+// @route   GET /api/students/search
+// @access  Private (Admin, Teacher)
+const searchStudents = async (req, res) => {
+  try {
+    const schoolId = req.schoolId;
+    if (!schoolId) {
+      return res.status(400).json({
+        success: false,
+        message: "School ID is required",
+      });
+    }
+
+    const { q } = req.query;
+    if (!q || q.length < 3) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query must be at least 3 characters",
+      });
+    }
+
+    const students = await StudentService.searchStudents(q, schoolId);
+
+    res.status(200).json({
+      success: true,
+      data: students,
+    });
+  } catch (error) {
+    console.error("Search students error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while searching students",
+    });
+  }
+};
+
+// @desc    Get student status options
+// @route   GET /api/students/get-status-options
+// @access  Private
+const getStudentStatusOptions = async (req, res) => {
+  try {
+    const statuses = getStudentStatusValues();
+
+    res.status(200).json({
+      success: true,
+      data: statuses,
+    });
+  } catch (error) {
+    console.error("Get student status options error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching student status options",
+    });
+  }
+};
+
 export {
   getAllStudents,
   getStudentById,
   createStudent,
   updateStudent,
   deleteStudent,
+  searchStudents,
+  getStudentStatusOptions,
 };

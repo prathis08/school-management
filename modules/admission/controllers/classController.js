@@ -1,5 +1,6 @@
 import { validationResult } from "express-validator";
 import ClassService from "../services/ClassService.js";
+import gradeConfigService from "../../backend-core/services/gradeConfigService.js";
 
 // @desc    Get all classes
 // @route   GET /api/classes
@@ -362,28 +363,30 @@ const getGradesAndClasses = async (req, res) => {
 };
 
 const getGradesOptions = async (req, res) => {
-  const grades = [
-    "Pre-Primary",
-    "Primary",
-    "LKG",
-    "UKG",
-    "Grade 1",
-    "Grade 2",
-    "Grade 3",
-    "Grade 4",
-    "Grade 5",
-    "Grade 6",
-    "Grade 7",
-    "Grade 8",
-    "Grade 9",
-    "Grade 10",
-    "Grade 11",
-    "Grade 12",
-  ];
-  return res.status(200).json({
-    success: true,
-    data: grades,
-  });
+  try {
+    const schoolId = req.user.schoolId;
+
+    // Get grades from YAML config file for the school
+    const gradeList = gradeConfigService.getGradeList(schoolId);
+
+    // Format grades with gradeId (using index-based ID for consistency)
+    const grades = gradeList.map((grade, index) => ({
+      gradeId: `GRADE_${index + 1}`,
+      grade: grade,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: grades,
+    });
+  } catch (error) {
+    console.error("Error fetching grades options:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch grades options",
+      error: error.message,
+    });
+  }
 };
 
 export default {

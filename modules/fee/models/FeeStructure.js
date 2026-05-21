@@ -58,11 +58,6 @@ const FeeStructure = sequelize.define(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
-    createdDate: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
     schoolId: {
       type: DataTypes.STRING,
       allowNull: false,

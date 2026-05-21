@@ -4,6 +4,7 @@
 import User from "./User.js";
 import Token from "./Token.js";
 import School from "./School.js";
+import UserPreferences from "./UserPreferences.js";
 
 // Admission Module Models
 import Student from "../../admission/models/Student.js";
@@ -45,6 +46,17 @@ User.hasOne(Teacher, {
   as: "teacherProfile",
 });
 User.hasMany(Token, { foreignKey: "userId", sourceKey: "id", as: "tokens" });
+
+User.hasOne(UserPreferences, {
+  foreignKey: "userId",
+  sourceKey: "id",
+  as: "preferences",
+});
+UserPreferences.belongsTo(User, {
+  foreignKey: "userId",
+  targetKey: "id",
+  as: "user",
+});
 
 Student.belongsTo(User, {
   foreignKey: "userId",
@@ -344,6 +356,7 @@ export {
   User,
   Token,
   School,
+  UserPreferences,
 
   // Admission Module
   Student,

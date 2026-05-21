@@ -80,7 +80,15 @@ const Teacher = sequelize.define(
     freezeTableName: true,
     timestamps: true,
     underscored: true, // This makes Sequelize use snake_case for timestamps
-  }
+  },
 );
+
+// Exclude UUID id and userId from JSON responses to frontend
+Teacher.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  delete values.id;
+  delete values.userId;
+  return values;
+};
 
 export default Teacher;

@@ -128,7 +128,7 @@ export const createTeacher = async (teacherData, schoolId, options = {}) => {
       ...teacherData,
       schoolId: schoolId,
     },
-    options
+    options,
   );
 };
 
@@ -144,7 +144,7 @@ export const updateTeacher = async (
   teacherId,
   updateData,
   schoolId,
-  options = {}
+  options = {},
 ) => {
   if (!teacherId) {
     throw new Error("Teacher identifier is missing");
@@ -172,14 +172,14 @@ export const deleteTeacher = async (teacherId, schoolId, options = {}) => {
   }
 
   return await Teacher.update(
-    { is_active: false },
+    { isActive: false },
     {
       where: {
         schoolId: schoolId,
-        teacher_id: teacherId,
+        teacherId: teacherId,
       },
       ...options,
-    }
+    },
   );
 };
 

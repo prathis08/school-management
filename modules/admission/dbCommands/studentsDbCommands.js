@@ -5,6 +5,16 @@ import {
 } from "@school-management/backend-core/models/index.js";
 
 export const getAllStudents = async (schoolId, options = {}) => {
+  const { gradeId, ...queryOptions } = options;
+
+  const where = {
+    schoolId: schoolId,
+    isActive: true,
+  };
+  if (gradeId) {
+    where.gradeId = gradeId;
+  }
+
   const defaultOptions = {
     include: [
       {
@@ -19,14 +29,11 @@ export const getAllStudents = async (schoolId, options = {}) => {
       },
     ],
     order: [["createdAt", "DESC"]],
-    ...options,
+    ...queryOptions,
   };
 
   return await Student.findAll({
-    where: {
-      schoolId: schoolId,
-      isActive: true,
-    },
+    where,
     ...defaultOptions,
   });
 };

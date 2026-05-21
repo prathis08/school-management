@@ -24,6 +24,8 @@ export {
 export { default as authRoutes } from "./routes/authRoutes.js";
 export { default as featureRoutes } from "./routes/featureRoutes.js";
 export { default as dashboardRoutes } from "./routes/dashboardRoutes.js";
+export { default as userDataRoutes } from "./routes/userDataRoutes.js";
+export { default as settingsRoutes } from "./routes/settingsRoutes.js";
 
 // Models
 export { default as User } from "./models/User.js";

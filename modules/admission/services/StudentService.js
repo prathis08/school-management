@@ -1,6 +1,7 @@
 import { User } from "@school-management/backend-core/models/index.js";
 import { ROLES } from "@school-management/backend-core/constants/roles.js";
 import { getSequelize } from "@school-management/backend-core/config/database.js";
+import { Op } from "sequelize";
 import {
   getAllStudents as getAllStudentsDb,
   getStudentById as getStudentByIdDb,
@@ -10,6 +11,8 @@ import {
   deleteStudent as deleteStudentDb,
 } from "../dbCommands/studentsDbCommands.js";
 import { generateCustomIdWithPrefix } from "@school-management//backend-core/utils/customIdGenerator.js";
+import Student from "../models/Student.js";
+import Class from "../models/Class.js";
 
 class StudentService {
   /**
@@ -22,14 +25,16 @@ class StudentService {
     const page = parseInt(options.page) || 1;
     const limit = parseInt(options.limit) || 10;
     const offset = (page - 1) * limit;
+    const gradeId = options.gradeId || undefined;
 
     const students = await getAllStudentsDb(schoolId, {
       offset,
       limit,
+      gradeId,
     });
 
     // Count total for pagination (simple approach - get all and count)
-    const allStudents = await getAllStudentsDb(schoolId);
+    const allStudents = await getAllStudentsDb(schoolId, { gradeId });
     const count = allStudents.length;
 
     return {
@@ -102,7 +107,20 @@ class StudentService {
         previousSchoolBoard,
         reasonForLeaving,
         subjects,
+        staffRelation,
       } = studentData;
+
+      // Normalize staffRelation. When isStaffWard is false (or missing), store
+      // an empty object so the field is consistent and queryable.
+      const normalizedStaffRelation =
+        staffRelation && staffRelation.isStaffWard
+          ? {
+              isStaffWard: true,
+              staffId: staffRelation.staffId || null,
+              staffName: staffRelation.staffName || null,
+              relation: staffRelation.relation || null,
+            }
+          : {};
 
       // Check if student with same name and father name already exists
       if (fatherName && firstName && lastName) {
@@ -196,6 +214,7 @@ class StudentService {
             typeof subjects === "string"
               ? { selectedSubjects: subjects }
               : subjects || {},
+          staffRelation: normalizedStaffRelation,
         },
         schoolId,
         { transaction },
@@ -237,6 +256,21 @@ class StudentService {
       delete studentUpdateData.lastName;
       delete studentUpdateData.email;
       delete studentUpdateData.password;
+
+      // Normalize staffRelation the same way as createStudent so the field
+      // never carries stale staffId/relation when the toggle is off.
+      if (Object.prototype.hasOwnProperty.call(studentUpdateData, "staffRelation")) {
+        const sr = studentUpdateData.staffRelation;
+        studentUpdateData.staffRelation =
+          sr && sr.isStaffWard
+            ? {
+                isStaffWard: true,
+                staffId: sr.staffId || null,
+                staffName: sr.staffName || null,
+                relation: sr.relation || null,
+              }
+            : {};
+      }
 
       await updateStudentDb(studentId, studentUpdateData, schoolId, {
         transaction,
@@ -319,6 +353,50 @@ class StudentService {
       await transaction.rollback();
       throw error;
     }
+  }
+
+  /**
+   * Search students by name or ID
+   * @param {string} query - Search query
+   * @param {string} schoolId - School ID
+   * @returns {Array} Matching students
+   */
+  async searchStudents(query, schoolId) {
+    const searchTerm = `%${query.toLowerCase()}%`;
+
+    const students = await Student.findAll({
+      where: {
+        schoolId,
+        [Op.or]: [
+          { firstName: { [Op.iLike]: searchTerm } },
+          { lastName: { [Op.iLike]: searchTerm } },
+          { studentId: { [Op.iLike]: searchTerm } },
+          { admissionNumber: { [Op.iLike]: searchTerm } },
+        ],
+      },
+      include: [
+        {
+          model: Class,
+          as: "class",
+          attributes: ["classId", "className", "section"],
+        },
+      ],
+      attributes: [
+        "studentId",
+        "firstName",
+        "lastName",
+        "admissionNumber",
+        "classId",
+        "gradeId",
+      ],
+      limit: 15,
+      order: [
+        ["first_name", "ASC"],
+        ["last_name", "ASC"],
+      ],
+    });
+
+    return students;
   }
 }
 
