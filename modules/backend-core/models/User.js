@@ -45,7 +45,6 @@ const User = sequelize.define(
     email: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
       validate: {
         isEmail: { msg: "Please provide a valid email" },
       },
@@ -72,10 +71,9 @@ const User = sequelize.define(
     },
     schoolId: {
       type: DataTypes.STRING(50),
-      allowNull: true,
-      unique: true,
+      allowNull: false,
       validate: {
-        notEmpty: { msg: "School ID cannot be empty if provided" },
+        notEmpty: { msg: "School ID is required" },
         len: {
           args: [1, 50],
           msg: "School ID must be between 1 and 50 characters",
@@ -91,6 +89,13 @@ const User = sequelize.define(
     tableName: "users",
     timestamps: true,
     underscored: true, // This makes Sequelize use snake_case for timestamps
+    indexes: [
+      {
+        unique: true,
+        fields: ["school_id", "email"],
+        name: "users_school_id_email_unique",
+      },
+    ],
     hooks: {
       beforeCreate: async (user) => {
         if (user.password) {

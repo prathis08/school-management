@@ -13,6 +13,8 @@ default:
 schools:
   "SCHOOL001":
     enabled_features:
+      - teachers
+      - fees
       - dashboard
       - students
       - classes

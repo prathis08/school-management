@@ -39,6 +39,13 @@ const validateUserRegistration = [
       ROLES.ADMIN,
     ])
     .withMessage("Role must be teacher or student"),
+
+  body("schoolId")
+    .trim()
+    .notEmpty()
+    .withMessage("School ID is required")
+    .isLength({ min: 1, max: 50 })
+    .withMessage("School ID must be between 1 and 50 characters"),
 ];
 
 // User login validation

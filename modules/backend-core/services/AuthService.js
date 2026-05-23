@@ -152,18 +152,13 @@ class AuthService {
   async register(userData) {
     const { schoolId, firstName, lastName, email, password, role } = userData;
 
-    // Check if user already exists by email AND schoolId combination
+    // Email must be unique within a school (composite uniqueness on schoolId + email)
     const existingUserByEmail = await User.findOne({
-      where: {
-        email,
-        schoolId: schoolId,
-      },
+      where: { email, schoolId },
     });
 
     if (existingUserByEmail) {
-      throw new Error(
-        "User with this email and school ID combination already exists",
-      );
+      throw new Error("User with this email already exists for this school");
     }
 
     // Create user
