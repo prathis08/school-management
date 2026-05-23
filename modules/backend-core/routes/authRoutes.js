@@ -11,6 +11,7 @@ import {
 } from "../controllers/authController.js";
 import {
   validateUserRegistration,
+  validateSchoolIdInBody,
   validateUserLogin,
 } from "@school-management/backend-core/middleware/validation.js";
 import auth from "@school-management/backend-core/middleware/auth.js";
@@ -20,7 +21,12 @@ const router = express.Router();
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
-router.post("/register-user", validateUserRegistration, register);
+router.post(
+  "/register-user",
+  validateUserRegistration,
+  validateSchoolIdInBody,
+  register
+);
 
 // @route   POST /api/auth/login
 // @desc    Login user

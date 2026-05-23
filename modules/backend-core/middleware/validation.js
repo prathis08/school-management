@@ -39,7 +39,13 @@ const validateUserRegistration = [
       ROLES.ADMIN,
     ])
     .withMessage("Role must be teacher or student"),
+];
 
+// schoolId must be present in the body for unauthenticated flows
+// (e.g. /auth/register-user). Authenticated admin-create flows source
+// schoolId from the JWT (req.schoolId via populateUserHeaders), so they
+// should NOT spread this into their validators.
+const validateSchoolIdInBody = [
   body("schoolId")
     .trim()
     .notEmpty()
@@ -157,6 +163,7 @@ const validateSubjectCreation = [
 
 export {
   validateUserRegistration,
+  validateSchoolIdInBody,
   validateUserLogin,
   validateStudentCreation,
   validateTeacherCreation,
