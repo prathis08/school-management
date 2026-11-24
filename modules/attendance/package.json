@@ -1,0 +1,18 @@
+{
+  "name": "@school-management/attendance",
+  "version": "1.0.0",
+  "description": "Attendance module for recording student attendance and reporting",
+  "main": "index.js",
+  "type": "module",
+  "keywords": [
+    "attendance",
+    "students",
+    "school"
+  ],
+  "dependencies": {
+    "@school-management/backend-core": "^1.0.0",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "sequelize": "^6.32.1"
+  }
+}

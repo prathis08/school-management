@@ -246,11 +246,53 @@ const getTeacherNames = async (req, res) => {
   }
 };
 
+// @desc    Reset a teacher's password to a temporary password
+// @route   POST /api/teachers/:id/reset-password
+// @access  Private (Admin)
+const resetTeacherPassword = async (req, res) => {
+  try {
+    const schoolId = req.user.schoolId;
+    if (!schoolId) {
+      return res.status(400).json({
+        success: false,
+        message: "School ID is required",
+      });
+    }
+
+    const result = await TeacherService.resetTeacherPassword(
+      req.params.id,
+      schoolId,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Reset teacher password error:", error);
+    if (
+      error.message === "Teacher not found" ||
+      error.message === "Teacher user not found"
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: "Server error while resetting password",
+    });
+  }
+};
+
 export {
   getAllTeachers,
   getTeacherById,
   createTeacher,
   updateTeacher,
   deleteTeacher,
+  resetTeacherPassword,
   getTeacherNames,
 };

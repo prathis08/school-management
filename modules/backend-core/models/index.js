@@ -16,6 +16,11 @@ import Subject from "../../admission/models/Subject.js";
 import FeeStructure from "../../fee/models/FeeStructure.js";
 import Payment from "../../fee/models/Payment.js";
 import GradeFees from "../../fee/models/GradeFees.js";
+import AcademicYear from "../../fee/models/AcademicYear.js";
+
+// Academic Module Models (enrollment history + promotion settings)
+import StudentEnrollment from "../../academic/models/StudentEnrollment.js";
+import PromotionRule from "../../academic/models/PromotionRule.js";
 
 // Transportation Module Models
 import Bus from "../../transportation/models/Bus.js";
@@ -24,7 +29,11 @@ import Stop from "../../transportation/models/Stop.js";
 
 // Examination Module Models
 import Exam from "../../examination/models/Exam.js";
+import ExamSubject from "../../examination/models/ExamSubject.js";
 import Result from "../../examination/models/Result.js";
+
+// Attendance Module Models
+import Attendance from "../../attendance/models/Attendance.js";
 
 // Task Management Module Models
 import Task from "../../task-management/models/Task.js";
@@ -113,8 +122,24 @@ Subject.belongsToMany(Teacher, {
   as: "teachers",
 });
 
-// Note: Class-Subject associations commented out as class_subject table doesn't exist
-// If needed, create the junction table first or use a different relationship pattern
+// Class ↔ Subject (M2M through class_subject; mirrors teacher_subject pattern)
+Class.belongsToMany(Subject, {
+  through: "class_subject",
+  foreignKey: "classId",
+  sourceKey: "classId",
+  otherKey: "subjectId",
+  targetKey: "subjectId",
+  as: "subjects",
+});
+
+Subject.belongsToMany(Class, {
+  through: "class_subject",
+  foreignKey: "subjectId",
+  sourceKey: "subjectId",
+  otherKey: "classId",
+  targetKey: "classId",
+  as: "classes",
+});
 
 // Fee Module associations - using custom IDs
 FeeStructure.hasMany(Payment, {
@@ -313,18 +338,38 @@ TaskHistory.belongsTo(User, {
 // Note: Student-Transportation associations commented out as student_stop table doesn't exist
 // If needed, create the junction table first or use a different relationship pattern
 
-// Examination Module associations - using custom IDs
-// TEMPORARILY COMMENTED OUT - TO BE UPDATED
-/*
-Subject.hasMany(Exam, {
+// Examination Module associations
+Exam.hasMany(ExamSubject, {
+  foreignKey: "examId",
+  sourceKey: "examId",
+  as: "examSubjects",
+});
+ExamSubject.belongsTo(Exam, {
+  foreignKey: "examId",
+  targetKey: "examId",
+  as: "exam",
+});
+
+Subject.hasMany(ExamSubject, {
   foreignKey: "subjectId",
   sourceKey: "subjectId",
-  as: "exams",
+  as: "examSubjects",
 });
-Exam.belongsTo(Subject, {
+ExamSubject.belongsTo(Subject, {
   foreignKey: "subjectId",
   targetKey: "subjectId",
   as: "subject",
+});
+
+ExamSubject.hasMany(Result, {
+  foreignKey: "examSubjectId",
+  sourceKey: "examSubjectId",
+  as: "results",
+});
+Result.belongsTo(ExamSubject, {
+  foreignKey: "examSubjectId",
+  targetKey: "examSubjectId",
+  as: "examSubject",
 });
 
 Exam.hasMany(Result, {
@@ -348,7 +393,41 @@ Result.belongsTo(Student, {
   targetKey: "studentId",
   as: "student",
 });
-*/
+
+// Academic Module associations (per-year enrollment history)
+Student.hasMany(StudentEnrollment, {
+  foreignKey: "studentId",
+  sourceKey: "studentId",
+  as: "enrollments",
+});
+StudentEnrollment.belongsTo(Student, {
+  foreignKey: "studentId",
+  targetKey: "studentId",
+  as: "student",
+});
+
+// Attendance Module associations
+Student.hasMany(Attendance, {
+  foreignKey: "studentId",
+  sourceKey: "studentId",
+  as: "attendanceRecords",
+});
+Attendance.belongsTo(Student, {
+  foreignKey: "studentId",
+  targetKey: "studentId",
+  as: "student",
+});
+
+Class.hasMany(Attendance, {
+  foreignKey: "classId",
+  sourceKey: "classId",
+  as: "attendanceRecords",
+});
+Attendance.belongsTo(Class, {
+  foreignKey: "classId",
+  targetKey: "classId",
+  as: "class",
+});
 
 // Export all models for use across the application
 export {
@@ -368,6 +447,11 @@ export {
   FeeStructure,
   Payment,
   GradeFees,
+  AcademicYear,
+
+  // Academic Module
+  StudentEnrollment,
+  PromotionRule,
 
   // Transportation Module
   Bus,
@@ -376,7 +460,11 @@ export {
 
   // Examination Module
   Exam,
+  ExamSubject,
   Result,
+
+  // Attendance Module
+  Attendance,
 
   // Task Management Module
   Task,

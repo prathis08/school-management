@@ -4,6 +4,7 @@ export const DASHBOARD_FEATURES = {
   TEACHERS: "teachers",
   CLASSES: "classes",
   SUBJECTS: "subjects",
+  EXAMINATIONS: "examinations",
   LIBRARY: "library",
   FEES: "fees",
   ATTENDANCE: "attendance",
@@ -39,12 +40,6 @@ export const FEATURE_METADATA = {
     category: FEATURE_CATEGORIES.ACADEMIC,
     required: false,
   },
-  [DASHBOARD_FEATURES.TEACHERS]: {
-    name: "Teacher Management",
-    description: "Teacher profiles, assignments, and management",
-    category: FEATURE_CATEGORIES.ACADEMIC,
-    required: false,
-  },
   [DASHBOARD_FEATURES.CLASSES]: {
     name: "Class Management",
     description: "Class creation, scheduling, and management",
@@ -54,6 +49,12 @@ export const FEATURE_METADATA = {
   [DASHBOARD_FEATURES.SUBJECTS]: {
     name: "Subject Management",
     description: "Subject creation, curriculum, and management",
+    category: FEATURE_CATEGORIES.ACADEMIC,
+    required: false,
+  },
+  [DASHBOARD_FEATURES.EXAMINATIONS]: {
+    name: "Examinations",
+    description: "Exam creation, marks entry, and report cards",
     category: FEATURE_CATEGORIES.ACADEMIC,
     required: false,
   },

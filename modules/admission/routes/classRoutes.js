@@ -20,10 +20,18 @@ const {
   getGradesOptions,
 } = classController;
 
+// Students cannot access the dashboard; class reads are staff-only.
+const READ_ROLES = authorize(
+  ROLES.ADMIN,
+  ROLES.TEACHER,
+  ROLES.COORDINATOR,
+  ROLES.ACCOUNTANT,
+);
+
 // @route   GET /api/classes
 // @desc    Get all classes
 // @access  Private
-router.get("/get-all-classes", auth, populateUserHeaders, getAllClasses);
+router.get("/get-all-classes", auth, populateUserHeaders, READ_ROLES, getAllClasses);
 
 // @route   GET /api/classes/by-grade-id/:gradeId
 // @desc    Get classes by grade ID
@@ -32,13 +40,14 @@ router.get(
   "/by-grade-id/:gradeId",
   auth,
   populateUserHeaders,
+  READ_ROLES,
   getClassesByGradeId,
 );
 
 // @route   GET /api/classes/grades-list
 // @desc    Get all unique grades with their gradeIds
 // @access  Private
-router.get("/grades-list", auth, populateUserHeaders, getGradesList);
+router.get("/grades-list", auth, populateUserHeaders, READ_ROLES, getGradesList);
 
 // @route   GET /api/classes/grades-and-classes
 // @desc    Get grades and class list
@@ -47,13 +56,14 @@ router.get(
   "/grades-and-classes",
   auth,
   populateUserHeaders,
+  READ_ROLES,
   getGradesAndClasses,
 );
 
 // @route   GET /api/classes/:id
 // @desc    Get class by ID
 // @access  Private
-router.get("/get-class-by-id/:id", auth, populateUserHeaders, getClassById);
+router.get("/get-class-by-id/:id", auth, populateUserHeaders, READ_ROLES, getClassById);
 
 // @route   POST /api/classes
 // @desc    Create new class
@@ -67,7 +77,7 @@ router.post(
   createClass,
 );
 
-router.get("/get-grades-options", auth, populateUserHeaders, getGradesOptions);
+router.get("/get-grades-options", auth, populateUserHeaders, READ_ROLES, getGradesOptions);
 
 // @route   PUT /api/classes/:id
 // @desc    Update class

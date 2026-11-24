@@ -11,10 +11,14 @@
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
     "seed": "node scripts/seed.js",
+    "test": "node --test test/",
     "test-jwt": "node scripts/test-jwt.js",
     "test-school-id": "node scripts/test-school-id.js",
     "test-token-persistence": "node scripts/test-token-persistence.js",
     "install-modules": "npm install --workspaces",
+    "migrate": "node scripts/migrate.js",
+    "migrate:baseline": "node scripts/migrate.js --baseline",
+    "migrate:status": "node scripts/migrate.js --status",
     "build": "npm run build --workspaces"
   },
   "keywords": [

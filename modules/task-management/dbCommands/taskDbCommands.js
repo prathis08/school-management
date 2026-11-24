@@ -21,7 +21,7 @@ export const createTask = async (taskData, schoolId, userId, options = {}) => {
     {
       ...taskData,
       schoolId: schoolId,
-      created_by_user_id: userId,
+      createdByUserId: userId,
     },
     options
   );
@@ -29,10 +29,10 @@ export const createTask = async (taskData, schoolId, userId, options = {}) => {
   // Create history entry
   await TaskHistory.create(
     {
-      task_id: task.id,
+      taskId: task.id,
       action: TASK_ACTIONS.CREATED,
       description: "Task created",
-      changed_by_user_id: userId,
+      changedByUserId: userId,
       schoolId: schoolId,
     },
     options
@@ -219,10 +219,10 @@ export const updateTask = async (
   // Create history entry
   await TaskHistory.create(
     {
-      task_id: task.id,
+      taskId: task.id,
       action: TASK_ACTIONS.UPDATED,
       description: "Task updated",
-      changed_by_user_id: userId,
+      changedByUserId: userId,
       schoolId: schoolId,
     },
     options
@@ -250,19 +250,19 @@ export const deleteTask = async (taskId, schoolId, userId, options = {}) => {
 
   await task.update(
     {
-      is_active: false,
-      deleted_at: new Date(),
+      isActive: false,
+      deletedAt: new Date(),
     },
-    options
+    options,
   );
 
   // Create history entry
   await TaskHistory.create(
     {
-      task_id: task.id,
+      taskId: task.id,
       action: TASK_ACTIONS.DELETED,
       description: "Task deleted",
-      changed_by_user_id: userId,
+      changedByUserId: userId,
       schoolId: schoolId,
     },
     options
@@ -362,9 +362,9 @@ export const addTaskComment = async (
 
   const comment = await TaskComment.create(
     {
-      task_id: task.id,
+      taskId: task.id,
       content,
-      created_by_user_id: userId,
+      createdByUserId: userId,
       schoolId: schoolId,
     },
     options
@@ -373,10 +373,10 @@ export const addTaskComment = async (
   // Create history entry
   await TaskHistory.create(
     {
-      task_id: task.id,
+      taskId: task.id,
       action: TASK_ACTIONS.COMMENT_ADDED,
       description: "Comment added to task",
-      changed_by_user_id: userId,
+      changedByUserId: userId,
       schoolId: schoolId,
     },
     options
@@ -407,15 +407,15 @@ export const addTaskAttachment = async (
   }
 
   const attachment = await TaskAttachment.create({
-    task_id: task.id,
+    taskId: task.id,
     ...attachmentData,
-    uploaded_by_user_id: userId,
+    uploadedByUserId: userId,
     schoolId: schoolId,
   });
 
   // Create history entry
   await TaskHistory.create({
-    task_id: task.id,
+    taskId: task.id,
     action: TASK_ACTIONS.ATTACHMENT_ADDED,
     description: `File attached: ${attachmentData.file_name}`,
     changed_by_user_id: userId,

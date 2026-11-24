@@ -30,7 +30,6 @@ const Teacher = sequelize.define(
     schoolId: {
       type: DataTypes.STRING(50),
       allowNull: true,
-      unique: true,
       validate: {
         notEmpty: { msg: "School ID cannot be empty if provided" },
         len: {

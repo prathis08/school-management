@@ -73,7 +73,6 @@ const Student = sequelize.define(
     rollNumber: {
       type: DataTypes.STRING,
       allowNull: true,
-      unique: true,
     },
     dateOfBirth: {
       type: DataTypes.DATE,
@@ -162,6 +161,13 @@ const Student = sequelize.define(
     freezeTableName: true,
     timestamps: true,
     underscored: true, // This makes Sequelize use snake_case for timestamps
+    indexes: [
+      {
+        unique: true,
+        fields: ["school_id", "roll_number"],
+        name: "student_school_roll_number_unique",
+      },
+    ],
   },
 );
 

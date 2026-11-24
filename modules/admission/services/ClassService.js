@@ -47,7 +47,7 @@ class ClassService {
             {
               model: User,
               as: "user",
-              attributes: ["first_name", "last_name", "email", "schoolId"],
+              attributes: ["first_name", "last_name", "schoolId"],
             },
           ],
         },
@@ -108,7 +108,7 @@ class ClassService {
             {
               model: User,
               as: "user",
-              attributes: ["first_name", "last_name", "email"],
+              attributes: ["first_name", "last_name"],
             },
           ],
         },
@@ -318,8 +318,37 @@ class ClassService {
       }
     }
 
+    // Only these class columns may be changed via the API.
+    const ALLOWED_CLASS_FIELDS = [
+      "className",
+      "grade",
+      "gradeId",
+      "section",
+      "maxStudents",
+      "room",
+      "schedule",
+    ];
+    const classUpdateData = {};
+    for (const field of ALLOWED_CLASS_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(updateData, field)) {
+        classUpdateData[field] = updateData[field];
+      }
+    }
+    // The UI sends `classTeacher`; the column is `classTeacherId`.
+    if (
+      Object.prototype.hasOwnProperty.call(updateData, "classTeacher") ||
+      Object.prototype.hasOwnProperty.call(updateData, "classTeacherId")
+    ) {
+      classUpdateData.classTeacherId =
+        updateData.classTeacherId ?? updateData.classTeacher ?? null;
+    }
+
     // Update class
-    const updateResult = await updateClassInDB(classId, updateData, schoolId);
+    const updateResult = await updateClassInDB(
+      classId,
+      classUpdateData,
+      schoolId,
+    );
 
     if (updateResult[0] === 0) {
       throw new Error("Class not found or no changes made");
@@ -488,7 +517,7 @@ class ClassService {
             {
               model: User,
               as: "user",
-              attributes: ["first_name", "last_name", "email"],
+              attributes: ["first_name", "last_name"],
             },
           ],
         },

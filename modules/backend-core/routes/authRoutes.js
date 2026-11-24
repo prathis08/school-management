@@ -11,20 +11,25 @@ import {
 } from "../controllers/authController.js";
 import {
   validateUserRegistration,
-  validateSchoolIdInBody,
   validateUserLogin,
 } from "@school-management/backend-core/middleware/validation.js";
-import auth from "@school-management/backend-core/middleware/auth.js";
+import auth from "../middleware/auth.js";
+import authorize from "../middleware/authorize.js";
+import populateUserHeaders from "../middleware/populateUserHeaders.js";
+import { ROLES } from "../constants/roles.js";
 
 const router = express.Router();
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
+// @route   POST /api/auth/register-user
+// @desc    Create a user inside the caller's school
+// @access  Private (Admin only) — public self-registration is disabled so an
+//          unauthenticated user cannot choose a role or schoolId.
 router.post(
   "/register-user",
+  auth,
+  populateUserHeaders,
+  authorize(ROLES.ADMIN),
   validateUserRegistration,
-  validateSchoolIdInBody,
   register
 );
 

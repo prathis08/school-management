@@ -2,90 +2,101 @@ import { DataTypes } from "sequelize";
 import { getSequelize } from "../../backend-core/config/database.js";
 import {
   EXAM_TYPES,
+  EXAM_STATUS,
   isValidExamType,
+  isValidExamStatus,
 } from "../constants/examinationConstants.js";
 import { generateCustomIdWithPrefix } from "../../backend-core/utils/customIdGenerator.js";
 
 const sequelize = getSequelize();
 
+/**
+ * Exam header. One exam belongs to a grade and contains many ExamSubject rows
+ * (each with its own subject + date + max marks). Marks live on Result rows
+ * keyed by examSubjectId + studentId.
+ */
 const Exam = sequelize.define(
-  "Exam",
+  "exam",
   {
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    exam_id: {
+    examId: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
       defaultValue: () => generateCustomIdWithPrefix("EXAM"),
     },
     schoolId: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+    },
+    examName: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    exam_name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    exam_type: {
+    examType: {
       type: DataTypes.STRING(50),
       allowNull: false,
       validate: {
         isValidType(value) {
           if (!isValidExamType(value)) {
             throw new Error(
-              `Invalid exam type. Must be one of: ${Object.values(
-                EXAM_TYPES
-              ).join(", ")}`
+              `Invalid exam type. Must be one of: ${Object.values(EXAM_TYPES).join(", ")}`,
             );
           }
         },
       },
     },
-    class_name: {
+    gradeId: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    subject_id: {
+    grade: {
       type: DataTypes.STRING,
       allowNull: false,
-      references: {
-        model: "subject",
-        key: "subject_id",
+    },
+    classId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    className: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    academicYear: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    academicYearId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    status: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      defaultValue: EXAM_STATUS.DRAFT,
+      validate: {
+        isValidStatus(value) {
+          if (!isValidExamStatus(value)) {
+            throw new Error(
+              `Invalid exam status. Must be one of: ${Object.values(EXAM_STATUS).join(", ")}`,
+            );
+          }
+        },
       },
-    },
-    exam_date: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    start_time: {
-      type: DataTypes.TIME,
-      allowNull: false,
-    },
-    end_time: {
-      type: DataTypes.TIME,
-      allowNull: false,
-    },
-    total_marks: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    passing_marks: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    academic_year: {
-      type: DataTypes.STRING,
-      allowNull: false,
     },
     instructions: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    is_active: {
+    createdByUserId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
@@ -93,13 +104,18 @@ const Exam = sequelize.define(
   {
     tableName: "exams",
     timestamps: true,
-    underscored: true, // This makes Sequelize use snake_case for timestamps
+    underscored: true,
     indexes: [
-      {
-        fields: ["schoolId", "class_name", "academic_year"],
-      },
+      { fields: ["school_id", "grade_id", "academic_year"] },
+      { fields: ["school_id", "exam_type"] },
     ],
-  }
+  },
 );
+
+Exam.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  delete values.id;
+  return values;
+};
 
 export default Exam;

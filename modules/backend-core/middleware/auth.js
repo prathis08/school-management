@@ -1,5 +1,27 @@
 import jwt from "jsonwebtoken";
 import { User, Token } from "../models/index.js";
+import { getAccessToken } from "../utils/cookieHelper.js";
+import { ROLES } from "../constants/roles.js";
+
+// Endpoints a user may still call while they must change their password.
+const PASSWORD_CHANGE_ALLOWED_PATHS = new Set([
+  "/api/profile",
+  "/api/profile/password",
+  "/api/auth/get-user-profile",
+  "/api/auth/logout-user",
+  "/api/auth/logout-all-devices",
+  "/api/features/get-dashboard-config",
+  "/api/health",
+]);
+
+// Endpoints a student may call when the student dashboard is disabled.
+const STUDENT_ALLOWED_PATHS = new Set([
+  "/api/profile",
+  "/api/profile/password",
+  "/api/auth/get-user-profile",
+  "/api/auth/logout-user",
+  "/api/auth/logout-all-devices",
+]);
 
 const auth = async (req, res, next) => {
   try {
@@ -12,26 +34,9 @@ const auth = async (req, res, next) => {
       });
     }
 
-    // Extract token from Authorization header
-    const authHeader = req.header("Authorization");
-
-    if (!authHeader) {
-      return res.status(401).json({
-        success: false,
-        message: "No authorization header provided",
-      });
-    }
-
-    // Check if header starts with 'Bearer '
-    if (!authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Invalid authorization header format. Expected 'Bearer <token>'",
-      });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
+    // Accept either an Authorization: Bearer header (API clients) or the
+    // httpOnly access cookie (browser).
+    const token = getAccessToken(req);
 
     if (!token || token === "null" || token === "undefined") {
       return res.status(401).json({
@@ -68,6 +73,33 @@ const auth = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: "Account is deactivated",
+      });
+    }
+
+    const requestPath = (req.originalUrl || "").split("?")[0];
+
+    if (
+      user.mustChangePassword &&
+      !PASSWORD_CHANGE_ALLOWED_PATHS.has(requestPath)
+    ) {
+      return res.status(403).json({
+        success: false,
+        code: "PASSWORD_CHANGE_REQUIRED",
+        message: "You must change your password before continuing",
+      });
+    }
+
+    const studentDashboardEnabled =
+      process.env.ALLOW_STUDENT_DASHBOARD === "true";
+    if (
+      user.role === ROLES.STUDENT &&
+      !studentDashboardEnabled &&
+      !STUDENT_ALLOWED_PATHS.has(requestPath)
+    ) {
+      return res.status(403).json({
+        success: false,
+        code: "STUDENT_DASHBOARD_DISABLED",
+        message: "Student access to the dashboard is disabled",
       });
     }
 

@@ -6,6 +6,7 @@ import {
   createStudent,
   updateStudent,
   deleteStudent,
+  resetStudentPassword,
   searchStudents,
   getStudentStatusOptions,
 } from "../controllers/studentController.js";
@@ -44,7 +45,13 @@ router.get(
 // @route   GET /api/students/get-student-by-id/:id
 // @desc    Get student by ID
 // @access  Private
-router.get("/get-student-by-id/:id", auth, populateUserHeaders, getStudentById);
+router.get(
+  "/get-student-by-id/:id",
+  auth,
+  populateUserHeaders,
+  authorize(ROLES.ADMIN, ROLES.TEACHER, ROLES.COORDINATOR),
+  getStudentById,
+);
 
 // @route   GET /api/students/get-status-options
 // @desc    Get student status options
@@ -77,6 +84,17 @@ router.put(
   populateUserHeaders,
   authorize(ROLES.ADMIN),
   updateStudent,
+);
+
+// @route   POST /api/students/:id/reset-password
+// @desc    Reset a student's password (returns a temporary password once)
+// @access  Private (Admin)
+router.post(
+  "/:id/reset-password",
+  auth,
+  populateUserHeaders,
+  authorize(ROLES.ADMIN),
+  resetStudentPassword,
 );
 
 // @route   DELETE /api/students/:id

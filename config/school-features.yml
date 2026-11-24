@@ -20,6 +20,20 @@ schools:
       - classes
       - subjects
       - notifications
+      - examinations
+      - attendance
+
+  "SCH001":
+    enabled_features:
+      - dashboard
+      - teachers
+      - students
+      - classes
+      - subjects
+      - fees
+      - notifications
+      - examinations
+      - attendance
 
   "SCHOOL002":
     enabled_features:
@@ -29,6 +43,7 @@ schools:
       - classes
       - subjects
       - fees
+      - attendance
 
   "SCHOOL003":
     enabled_features:

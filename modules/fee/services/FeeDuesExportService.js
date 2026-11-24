@@ -25,6 +25,44 @@ const setJob = (jobId, patch) => {
 
 const getJob = (jobId) => jobs.get(jobId) || null;
 
+// Exports expire so files don't accumulate forever.
+const EXPORT_TTL_MS = Number(process.env.EXPORT_TTL_MS) || 60 * 60 * 1000;
+
+export const cleanupExpiredExports = () => {
+  const now = Date.now();
+
+  for (const [jobId, job] of jobs.entries()) {
+    const timestamp = job.completedAt || job.updatedAt || job.createdAt;
+    if (timestamp && now - new Date(timestamp).getTime() > EXPORT_TTL_MS) {
+      if (job.filePath) {
+        try {
+          fs.unlinkSync(job.filePath);
+        } catch (e) {
+          // File may already be gone.
+        }
+      }
+      jobs.delete(jobId);
+    }
+  }
+
+  try {
+    for (const name of fs.readdirSync(EXPORTS_DIR)) {
+      const filePath = path.join(EXPORTS_DIR, name);
+      try {
+        const stat = fs.statSync(filePath);
+        if (now - stat.mtimeMs > EXPORT_TTL_MS) fs.unlinkSync(filePath);
+      } catch (e) {
+        // Ignore individual file errors.
+      }
+    }
+  } catch (e) {
+    // Ignore directory read errors.
+  }
+};
+
+const exportSweeper = setInterval(cleanupExpiredExports, 10 * 60 * 1000);
+if (typeof exportSweeper.unref === "function") exportSweeper.unref();
+
 const formatDate = (value) => {
   if (!value) return "";
   const d = value instanceof Date ? value : new Date(value);
@@ -293,7 +331,9 @@ class FeeDuesExportService {
       });
 
       const filename = buildFilename(job.scope, job.classLabel);
-      const filePath = path.join(EXPORTS_DIR, `${jobId}__${filename}`);
+      // Never let a caller-controlled label influence the filesystem path.
+      const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = path.join(EXPORTS_DIR, `${jobId}__${safeFilename}`);
 
       await workbook.xlsx.writeFile(filePath);
 

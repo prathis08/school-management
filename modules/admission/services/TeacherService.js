@@ -1,3 +1,5 @@
+import { Op } from "sequelize";
+import { randomUUID } from "crypto";
 import {
   User,
   Teacher,
@@ -27,6 +29,8 @@ import {
   buildTeachersSummariesResponse,
 } from "../utils/teacherResponseBuilder.js";
 import { generateCustomIdWithPrefix } from "@school-management/backend-core/utils/customIdGenerator.js";
+
+import { generateTemporaryPassword } from "../../backend-core/utils/passwordGenerator.js";
 
 class TeacherService {
   /**
@@ -83,12 +87,12 @@ class TeacherService {
           {
             model: Subject,
             as: "subjects",
-            attributes: ["subject_name", "subject_code", "department"],
+            attributes: ["subjectId", "subjectName", "subjectCode", "department"],
           },
           {
             model: Class,
             as: "managedClasses",
-            attributes: ["class_name", "grade", "section", "room"],
+            attributes: ["classId", "className", "grade", "section", "room"],
           },
         ],
       },
@@ -129,10 +133,10 @@ class TeacherService {
     try {
       const employeeId = generateCustomIdWithPrefix("TEACHER");
 
-      // Check if user with email already exists in this school
-      const existingUser = await findAllBySchool(User, schoolId, { email });
-      if (existingUser.length > 0) {
-        throw new Error("User with this email already exists in this school");
+      // Emails are globally unique.
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        throw new Error("A user with this email already exists");
       }
 
       // Check if employee ID already exists in this school
@@ -143,17 +147,18 @@ class TeacherService {
         throw new Error("Employee ID already exists in this school");
       }
 
-      // Create user first with schoolId
-      const defaultPassword = "ChangeMe123!";
-      const password = defaultPassword; // In real scenario, hash the password
+      // Create user first with schoolId. Each teacher gets a unique temporary
+      // password (returned once to the admin) — never a shared default.
+      const temporaryPassword = generateTemporaryPassword();
       const user = await User.create(
         {
           firstName: firstName,
           lastName: lastName,
           email,
-          password,
+          password: temporaryPassword,
           role: ROLES.TEACHER,
           schoolId: schoolId,
+          mustChangePassword: true,
         },
         { transaction },
       );
@@ -194,8 +199,12 @@ class TeacherService {
         },
       );
 
-      // Build formatted response
-      return buildTeacherResponse(createdTeacher);
+      // Build formatted response. The temporary password is returned exactly
+      // once so the admin can hand it to the teacher.
+      return {
+        ...buildTeacherResponse(createdTeacher),
+        temporaryPassword,
+      };
     } catch (error) {
       // Rollback transaction on error
       await transaction.rollback();
@@ -215,44 +224,118 @@ class TeacherService {
     const transaction = await sequelize.transaction();
 
     try {
-      const teacher = await findByIdentifier(Teacher, teacherId);
+      // Scope the lookup to the caller's school (tenant isolation).
+      const teacher = await findByIdentifierAndSchool(
+        Teacher,
+        teacherId,
+        schoolId,
+        "teacherId",
+      );
       if (!teacher) {
         throw new Error("Teacher not found");
       }
 
-      // Check if schoolId already exists (if provided and different from current)
-      if (updateData.schoolId && updateData.schoolId !== teacher.schoolId) {
-        const existingSchoolId = await Teacher.findOne({
-          where: { schoolId: updateData.schoolId },
-        });
-        if (existingSchoolId) {
-          throw new Error("School ID already exists");
+      const { subjectIds, classIds } = updateData;
+
+      // Only these teacher columns may be changed via the API. Everything else
+      // (schoolId, teacherId, userId, isActive, …) is ignored.
+      const ALLOWED_FIELDS = [
+        "department",
+        "qualification",
+        "experience",
+        "dateOfJoining",
+        "phone",
+        "address",
+        "salary",
+      ];
+      const teacherUpdateData = {};
+      for (const field of ALLOWED_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(updateData, field)) {
+          teacherUpdateData[field] = updateData[field];
         }
       }
-
-      // Update teacher fields
-      const teacherUpdateData = { ...updateData };
-      delete teacherUpdateData.firstName;
-      delete teacherUpdateData.lastName;
-      delete teacherUpdateData.email;
 
       await teacher.update(teacherUpdateData, { transaction });
 
       // Update user fields if provided
-      if (
-        updateData.firstName ||
-        updateData.lastName ||
-        updateData.email ||
-        updateData.schoolId
-      ) {
-        const user = await User.findOne({ where: { userId: teacher.userId } });
-        const userUpdateData = {};
-        if (updateData.firstName)
-          userUpdateData.firstName = updateData.firstName;
-        if (updateData.lastName) userUpdateData.lastName = updateData.lastName;
-        if (updateData.email) userUpdateData.email = updateData.email;
-        if (updateData.schoolId) userUpdateData.schoolId = updateData.schoolId;
-        await user.update(userUpdateData, { transaction });
+      if (updateData.firstName || updateData.lastName || updateData.email) {
+        const user = await User.findOne({
+          where: { userId: teacher.userId, schoolId },
+        });
+        if (user) {
+          const userUpdateData = {};
+          if (updateData.firstName)
+            userUpdateData.firstName = updateData.firstName;
+          if (updateData.lastName)
+            userUpdateData.lastName = updateData.lastName;
+          if (updateData.email) userUpdateData.email = updateData.email;
+          await user.update(userUpdateData, { transaction });
+        }
+      }
+
+      // Sync subject assignments (teacher_subject join table)
+      if (Array.isArray(subjectIds)) {
+        await sequelize.query(
+          "DELETE FROM teacher_subject WHERE teacher_id = :teacherId",
+          {
+            replacements: { teacherId: teacher.teacherId },
+            transaction,
+          },
+        );
+
+        if (subjectIds.length > 0) {
+          const subjects = await Subject.findAll({
+            where: {
+              schoolId,
+              subjectId: { [Op.in]: subjectIds },
+              isActive: true,
+            },
+            transaction,
+          });
+
+          for (const subject of subjects) {
+            await sequelize.query(
+              `INSERT INTO teacher_subject
+                 (id, teacher_id, subject_id, school_id, is_active, created_at, updated_at)
+               VALUES
+                 (:id, :teacherId, :subjectId, :schoolId, true, NOW(), NOW())`,
+              {
+                replacements: {
+                  id: randomUUID(),
+                  teacherId: teacher.teacherId,
+                  subjectId: subject.subjectId,
+                  schoolId,
+                },
+                transaction,
+              },
+            );
+          }
+        }
+      }
+
+      // Sync managed classes (sets/clears Class.classTeacherId)
+      if (Array.isArray(classIds)) {
+        await Class.update(
+          { classTeacherId: null },
+          {
+            where: {
+              schoolId,
+              classTeacherId: teacher.teacherId,
+              ...(classIds.length ? { classId: { [Op.notIn]: classIds } } : {}),
+            },
+            transaction,
+          },
+        );
+
+        if (classIds.length > 0) {
+          await Class.update(
+            { classTeacherId: teacher.teacherId },
+            {
+              where: { schoolId, classId: { [Op.in]: classIds } },
+              transaction,
+            },
+          );
+        }
       }
 
       // Commit transaction
@@ -269,12 +352,12 @@ class TeacherService {
           {
             model: Subject,
             as: "subjects",
-            attributes: ["subject_name", "subject_code"],
+            attributes: ["subjectId", "subjectName", "subjectCode"],
           },
           {
             model: Class,
             as: "managedClasses",
-            attributes: ["class_name", "grade", "section"],
+            attributes: ["classId", "className", "grade", "section"],
           },
         ],
       });
@@ -299,18 +382,23 @@ class TeacherService {
     const transaction = await sequelize.transaction();
 
     try {
-      const teacher = await findByIdentifier(Teacher, teacherId);
+      const teacher = await findByIdentifierAndSchool(
+        Teacher,
+        teacherId,
+        schoolId,
+        "teacherId",
+      );
       if (!teacher) {
         throw new Error("Teacher not found");
       }
 
       // Soft delete - mark as inactive
-      await teacher.update({ is_active: false }, { transaction });
+      await teacher.update({ isActive: false }, { transaction });
 
-      // Also deactivate user account
+      // Also deactivate user account (scoped to the same school)
       await User.update(
         { isActive: false },
-        { where: { userId: teacher.userId }, transaction },
+        { where: { userId: teacher.userId, schoolId }, transaction },
       );
 
       // Commit transaction
@@ -321,6 +409,39 @@ class TeacherService {
       await transaction.rollback();
       throw error;
     }
+  }
+
+  /**
+   * Reset a teacher's password to a fresh temporary password (admin action).
+   * @param {string} teacherId
+   * @param {string} schoolId
+   * @returns {{teacherId:string, temporaryPassword:string}}
+   */
+  async resetTeacherPassword(teacherId, schoolId) {
+    const teacher = await findByIdentifierAndSchool(
+      Teacher,
+      teacherId,
+      schoolId,
+      "teacherId",
+    );
+    if (!teacher) {
+      throw new Error("Teacher not found");
+    }
+
+    const user = await User.findOne({
+      where: { userId: teacher.userId, schoolId },
+    });
+    if (!user) {
+      throw new Error("Teacher user not found");
+    }
+
+    const temporaryPassword = generateTemporaryPassword();
+    await user.update({
+      password: temporaryPassword,
+      mustChangePassword: true,
+    });
+
+    return { teacherId: teacher.teacherId, temporaryPassword };
   }
 
   /**

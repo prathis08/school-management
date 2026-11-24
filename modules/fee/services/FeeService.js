@@ -248,13 +248,13 @@ class FeeService {
       const payment = await Payment.create(
         {
           schoolId: schoolId,
-          student_id: studentId,
-          fee_structure_id: feeStructureId,
+          studentId,
+          feeStructureId,
           amount,
-          payment_method: paymentMethod,
-          payment_status: PAYMENT_STATUS.COMPLETED,
-          transaction_id: transactionId,
-          payment_date: new Date(),
+          paymentMethod,
+          status: PAYMENT_STATUS.COMPLETED,
+          transactionId,
+          paymentDate: new Date(),
           remarks,
         },
         { transaction },
@@ -443,7 +443,7 @@ class FeeService {
    */
   async getPaymentHistory(studentId, schoolId) {
     const payments = await Payment.findAll({
-      where: { student_id: studentId, schoolId },
+      where: { studentId, schoolId },
       include: [
         {
           model: FeeStructure,

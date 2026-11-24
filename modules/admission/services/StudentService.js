@@ -11,6 +11,7 @@ import {
   deleteStudent as deleteStudentDb,
 } from "../dbCommands/studentsDbCommands.js";
 import { generateCustomIdWithPrefix } from "@school-management//backend-core/utils/customIdGenerator.js";
+import { generateTemporaryPassword } from "../../backend-core/utils/passwordGenerator.js";
 import Student from "../models/Student.js";
 import Class from "../models/Class.js";
 
@@ -33,9 +34,14 @@ class StudentService {
       gradeId,
     });
 
-    // Count total for pagination (simple approach - get all and count)
-    const allStudents = await getAllStudentsDb(schoolId, { gradeId });
-    const count = allStudents.length;
+    // Count without loading every row into memory.
+    const count = await Student.count({
+      where: {
+        schoolId,
+        isActive: true,
+        ...(gradeId ? { gradeId } : {}),
+      },
+    });
 
     return {
       students,
@@ -58,7 +64,6 @@ class StudentService {
     if (!student) {
       throw new Error("Student not found");
     }
-    console.log(JSON.stringify(student));
     return student;
   }
 
@@ -77,7 +82,6 @@ class StudentService {
         firstName,
         lastName,
         email,
-        password,
         studentId,
         dateOfBirth,
         gender,
@@ -137,15 +141,23 @@ class StudentService {
         }
       }
 
-      // Create user first
+      // Emails are globally unique.
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        throw new Error("A user with this email already exists");
+      }
+
+      // Create user first with a unique temporary password (returned once).
+      const temporaryPassword = generateTemporaryPassword();
       const user = await User.create(
         {
           firstName: firstName,
           lastName: lastName,
           email,
-          password,
+          password: temporaryPassword,
           role: ROLES.STUDENT,
           schoolId: schoolId,
+          mustChangePassword: true,
         },
         { transaction },
       );
@@ -223,8 +235,12 @@ class StudentService {
       // Commit transaction
       await transaction.commit();
 
-      // Return student with user data
-      return await getStudentByIdDb(student.studentId, schoolId);
+      // Return student with user data + the temporary password (shown once).
+      const created = await getStudentByIdDb(student.studentId, schoolId);
+      return {
+        ...(created?.toJSON ? created.toJSON() : created),
+        temporaryPassword,
+      };
     } catch (error) {
       // Rollback transaction on error
       await transaction.rollback();
@@ -250,12 +266,110 @@ class StudentService {
         throw new Error("Student not found");
       }
 
-      // Update student fields (exclude user-related fields)
-      const studentUpdateData = { ...updateData };
-      delete studentUpdateData.firstName;
-      delete studentUpdateData.lastName;
-      delete studentUpdateData.email;
-      delete studentUpdateData.password;
+      // Normalize the shapes the UI sends into canonical columns.
+      const input = { ...updateData };
+
+      const className = input.class || input.className;
+      let resolvedClass = null;
+      if (className) {
+        resolvedClass = await Class.findOne({
+          where: { schoolId, className, isActive: true },
+        });
+        if (resolvedClass) {
+          input.classId = resolvedClass.classId;
+          input.gradeId = resolvedClass.gradeId;
+        }
+      }
+      if (input.classId && !input.gradeId) {
+        const cls =
+          resolvedClass ||
+          (await Class.findOne({
+            where: { schoolId, classId: input.classId, isActive: true },
+          }));
+        if (cls) input.gradeId = cls.gradeId;
+      }
+      if (!input.gradeId && input.grade) {
+        const cls = await Class.findOne({
+          where: { schoolId, grade: input.grade, isActive: true },
+        });
+        if (cls) input.gradeId = cls.gradeId;
+      }
+
+      const hasGuardianFields = [
+        "guardianName",
+        "guardianPhone",
+        "guardianEmail",
+        "guardianRelation",
+        "guardianAddress",
+      ].some((key) => Object.prototype.hasOwnProperty.call(input, key));
+      if (hasGuardianFields) {
+        input.guardianDetails = {
+          ...(student.guardianDetails || {}),
+          ...(input.guardianName !== undefined
+            ? { name: input.guardianName }
+            : {}),
+          ...(input.guardianPhone !== undefined
+            ? { phone: input.guardianPhone }
+            : {}),
+          ...(input.guardianEmail !== undefined
+            ? { email: input.guardianEmail }
+            : {}),
+          ...(input.guardianRelation !== undefined
+            ? { relation: input.guardianRelation }
+            : {}),
+          ...(input.guardianAddress !== undefined
+            ? { address: input.guardianAddress }
+            : {}),
+        };
+      }
+
+      if (input.previousSchool) {
+        input.previousSchoolDetails = {
+          ...(student.previousSchoolDetails || {}),
+          ...input.previousSchool,
+        };
+      }
+
+      // Only these student columns may be changed via the API. Identity and
+      // tenancy fields (studentId, userId, schoolId, isActive) are ignored.
+      const ALLOWED_STUDENT_FIELDS = [
+        "admissionNumber",
+        "classId",
+        "gradeId",
+        "rollNumber",
+        "dateOfBirth",
+        "gender",
+        "parentDetails",
+        "guardianDetails",
+        "previousSchoolDetails",
+        "emergencyContact",
+        "address",
+        "admissionDate",
+        "enrollmentDate",
+        "status",
+        "subjects",
+        "attendance",
+        "grades",
+        "fatherName",
+        "staffRelation",
+        "phone",
+      ];
+      const studentUpdateData = {};
+      for (const field of ALLOWED_STUDENT_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(input, field)) {
+          studentUpdateData[field] = input[field];
+        }
+      }
+
+      // Keep the denormalized `name` in sync when names are edited.
+      if (
+        updateData.firstName !== undefined ||
+        updateData.lastName !== undefined
+      ) {
+        const first = updateData.firstName ?? student.firstName;
+        const last = updateData.lastName ?? student.lastName;
+        studentUpdateData.name = `${first || ""} ${last || ""}`.trim();
+      }
 
       // Normalize staffRelation the same way as createStudent so the field
       // never carries stale staffId/relation when the toggle is off.
@@ -311,6 +425,34 @@ class StudentService {
       await transaction.rollback();
       throw error;
     }
+  }
+
+  /**
+   * Reset a student's password to a fresh temporary password (admin action).
+   * @param {string} studentId
+   * @param {string} schoolId
+   * @returns {{studentId:string, temporaryPassword:string}}
+   */
+  async resetStudentPassword(studentId, schoolId) {
+    const student = await getStudentByIdDb(studentId, schoolId);
+    if (!student) {
+      throw new Error("Student not found");
+    }
+
+    const user = await User.findOne({
+      where: { id: student.userId, schoolId },
+    });
+    if (!user) {
+      throw new Error("Student user not found");
+    }
+
+    const temporaryPassword = generateTemporaryPassword();
+    await user.update({
+      password: temporaryPassword,
+      mustChangePassword: true,
+    });
+
+    return { studentId: student.studentId, temporaryPassword };
   }
 
   /**

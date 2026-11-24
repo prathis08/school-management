@@ -6,6 +6,7 @@ import {
   createTeacher,
   updateTeacher,
   deleteTeacher,
+  resetTeacherPassword,
   getTeacherNames,
 } from "../controllers/teacherController.js";
 import { validateTeacherCreation } from "@school-management/backend-core/middleware/validation.js";
@@ -32,14 +33,20 @@ router.get(
   "/get-teacher-names",
   auth,
   populateUserHeaders,
-  authorize(ROLES.ADMIN, ROLES.COORDINATOR, ROLES.ACCOUNTANT),
+  authorize(ROLES.ADMIN, ROLES.TEACHER, ROLES.COORDINATOR, ROLES.ACCOUNTANT),
   getTeacherNames
 );
 
 // @route   GET /api/teachers/:id
 // @desc    Get teacher by ID
-// @access  Private
-router.get("/get-teacher-by-id/:id", auth, populateUserHeaders, getTeacherById);
+// @access  Private (Admin, Coordinator, Accountant)
+router.get(
+  "/get-teacher-by-id/:id",
+  auth,
+  populateUserHeaders,
+  authorize(ROLES.ADMIN, ROLES.COORDINATOR, ROLES.ACCOUNTANT),
+  getTeacherById,
+);
 
 // @route   POST /api/teachers
 // @desc    Create new teacher
@@ -62,6 +69,17 @@ router.put(
   populateUserHeaders,
   authorize(ROLES.ADMIN),
   updateTeacher
+);
+
+// @route   POST /api/teachers/:id/reset-password
+// @desc    Reset a teacher's password (returns a temporary password once)
+// @access  Private (Admin)
+router.post(
+  "/:id/reset-password",
+  auth,
+  populateUserHeaders,
+  authorize(ROLES.ADMIN),
+  resetTeacherPassword,
 );
 
 // @route   DELETE /api/teachers/:id

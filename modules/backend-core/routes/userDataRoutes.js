@@ -9,6 +9,8 @@ import {
   getAllUsers,
 } from "../controllers/userDataController.js";
 import auth from "../middleware/auth.js";
+import authorize from "../middleware/authorize.js";
+import { ROLES } from "../constants/roles.js";
 
 const router = express.Router();
 
@@ -53,8 +55,14 @@ router.put("/", auth, updateProfileValidation, updateMyProfile);
 router.put("/password", auth, changePasswordValidation, changePassword);
 
 // Admin routes (these could have role-based middleware added)
-router.get("/users/all", auth, getAllUsers);
-router.get("/:userId", auth, getUserById);
-router.put("/:userId", auth, updateProfileValidation, updateUserById);
+router.get("/users/all", auth, authorize(ROLES.ADMIN), getAllUsers);
+router.get("/:userId", auth, authorize(ROLES.ADMIN), getUserById);
+router.put(
+  "/:userId",
+  auth,
+  authorize(ROLES.ADMIN),
+  updateProfileValidation,
+  updateUserById,
+);
 
 export default router;

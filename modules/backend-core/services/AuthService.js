@@ -152,13 +152,11 @@ class AuthService {
   async register(userData) {
     const { schoolId, firstName, lastName, email, password, role } = userData;
 
-    // Email must be unique within a school (composite uniqueness on schoolId + email)
-    const existingUserByEmail = await User.findOne({
-      where: { email, schoolId },
-    });
+    // Emails are globally unique (see the add-global-unique-email migration).
+    const existingUserByEmail = await User.findOne({ where: { email } });
 
     if (existingUserByEmail) {
-      throw new Error("User with this email already exists for this school");
+      throw new Error("A user with this email already exists");
     }
 
     // Create user
@@ -171,17 +169,9 @@ class AuthService {
       schoolId: schoolId,
     });
 
-    // Generate tokens
-    const tokens = await this.generateTokens(user.id);
-
-    // Get user profile data
+    // Admin-created users receive no session here; they log in themselves.
     const profile = await this.getUserProfile(user.id);
-
-    return {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      user: profile,
-    };
+    return { user: profile };
   }
 
   /**
@@ -208,6 +198,14 @@ class AuthService {
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       throw new Error("Invalid credentials");
+    }
+
+    // Students are not allowed into the admin dashboard yet.
+    if (
+      user.role === ROLES.STUDENT &&
+      process.env.ALLOW_STUDENT_DASHBOARD !== "true"
+    ) {
+      throw new Error("Student dashboard access is disabled");
     }
 
     // Generate tokens
@@ -239,7 +237,7 @@ class AuthService {
             {
               model: Class,
               as: "class",
-              attributes: ["class_name", "grade", "section"],
+              attributes: ["className", "grade", "section"],
             },
           ],
         },
@@ -250,12 +248,12 @@ class AuthService {
             {
               model: Subject,
               as: "subjects",
-              attributes: ["subject_name", "subject_code"],
+              attributes: ["subjectName", "subjectCode"],
             },
             {
               model: Class,
               as: "managedClasses",
-              attributes: ["class_name", "grade", "section"],
+              attributes: ["className", "grade", "section"],
             },
           ],
         },

@@ -4,6 +4,11 @@ import AuthService from "../services/AuthService.js";
 import { User, Token } from "../models/index.js";
 import { ROLES } from "../constants/roles.js";
 import { Student, Teacher, Class, Subject } from "../models/index.js";
+import {
+  setAuthCookies,
+  clearAuthCookies,
+  getRefreshToken,
+} from "../utils/cookieHelper.js";
 
 // Generate JWT token and save to database
 const generateToken = async (userId, req = null) => {
@@ -25,14 +30,25 @@ const register = async (req, res) => {
       });
     }
 
-    const result = await AuthService.register(req.body);
+    // The authenticated admin's school is authoritative — never trust a
+    // schoolId supplied in the body.
+    const schoolId = req.user?.schoolId;
+    if (!schoolId) {
+      return res.status(400).json({
+        success: false,
+        message: "School ID is required",
+      });
+    }
 
+    const result = await AuthService.register({ ...req.body, schoolId });
+
+    // Do not set cookies here: the caller is an authenticated admin creating
+    // another user. Issuing a session for the new user would overwrite the
+    // admin's own session.
     res.status(201).json({
       success: true,
       message: "User registered successfully",
       data: {
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
         user: {
           id: result.user.id,
           schoolId: result.user.schoolId,
@@ -40,6 +56,7 @@ const register = async (req, res) => {
           lastName: result.user.lastName,
           email: result.user.email,
           role: result.user.role,
+          mustChangePassword: Boolean(result.user.mustChangePassword),
         },
       },
     });
@@ -76,6 +93,11 @@ const login = async (req, res) => {
 
     const result = await AuthService.login(email, password, req);
 
+    setAuthCookies(res, {
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    });
+
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -85,14 +107,28 @@ const login = async (req, res) => {
         user: {
           id: result.user.id,
           schoolId: result.user.schoolId,
-          firstName: result.user.first_name,
-          lastName: result.user.last_name,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
           email: result.user.email,
           role: result.user.role,
+          mustChangePassword: Boolean(result.user.mustChangePassword),
         },
       },
     });
   } catch (error) {
+    if (error.message === "Invalid credentials") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+    if (error.message === "Student dashboard access is disabled") {
+      return res.status(403).json({
+        success: false,
+        code: "STUDENT_DASHBOARD_DISABLED",
+        message: error.message,
+      });
+    }
     console.error("Login error:", error);
     res.status(500).json({
       success: false,
@@ -129,7 +165,7 @@ const getProfile = async (req, res) => {
     if (user.role === ROLES.STUDENT) {
       const student = await Student.findOne({
         where: {
-          user_id: user.id,
+          userId: user.id,
           schoolId: user.schoolId,
         },
         include: [{ model: Class, as: "class" }],
@@ -138,7 +174,7 @@ const getProfile = async (req, res) => {
     } else if (user.role === ROLES.TEACHER) {
       const teacher = await Teacher.findOne({
         where: {
-          user_id: user.id,
+          userId: user.id,
           schoolId: user.schoolId,
         },
         include: [
@@ -172,8 +208,10 @@ const logout = async (req, res) => {
 
     if (tokenRecord) {
       // Revoke the current token
-      await tokenRecord.update({ is_revoked: true });
+      await tokenRecord.update({ isRevoked: true });
     }
+
+    clearAuthCookies(res);
 
     res.status(200).json({
       success: true,
@@ -197,6 +235,7 @@ const logoutAll = async (req, res) => {
 
     // Revoke all tokens for the user
     await Token.revokeUserTokens(userId);
+    clearAuthCookies(res);
 
     res.status(200).json({
       success: true,
@@ -221,21 +260,21 @@ const getSessions = async (req, res) => {
 
     const sessions = await Token.findAll({
       where: {
-        user_id: userId,
-        is_revoked: false,
-        expires_at: {
+        userId,
+        isRevoked: false,
+        expiresAt: {
           [Token.sequelize.Sequelize.Op.gt]: new Date(),
         },
       },
       attributes: [
         "id",
-        "device_info",
-        "ip_address",
-        "user_agent",
-        "created_at",
-        "expires_at",
+        "deviceInfo",
+        "ipAddress",
+        "userAgent",
+        "createdAt",
+        "expiresAt",
       ],
-      order: [["created_at", "DESC"]],
+      order: [["createdAt", "DESC"]],
     });
 
     // Mark current session
@@ -312,7 +351,7 @@ const revokeSession = async (req, res) => {
 // @access  Public (requires refresh token)
 const refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = getRefreshToken(req);
 
     if (!refreshToken) {
       return res.status(400).json({
@@ -322,6 +361,11 @@ const refreshToken = async (req, res) => {
     }
 
     const result = await AuthService.refreshAccessToken(refreshToken, req);
+
+    setAuthCookies(res, {
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    });
 
     res.status(200).json({
       success: true,

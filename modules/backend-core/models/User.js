@@ -84,6 +84,10 @@ const User = sequelize.define(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    mustChangePassword: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     tableName: "users",
@@ -92,8 +96,8 @@ const User = sequelize.define(
     indexes: [
       {
         unique: true,
-        fields: ["school_id", "email"],
-        name: "users_school_id_email_unique",
+        fields: ["email"],
+        name: "users_email_global_unique",
       },
     ],
     hooks: {

@@ -35,6 +35,27 @@ const errorHandler = (err, req, res, next) => {
     error = { message, statusCode: 401 };
   }
 
+  // Sequelize errors
+  if (err.name === "SequelizeUniqueConstraintError") {
+    const message =
+      err.errors?.[0]?.message || "A record with this value already exists";
+    error = { message, statusCode: 409 };
+  }
+
+  if (err.name === "SequelizeValidationError") {
+    const message =
+      (err.errors || []).map((item) => item.message).join(", ") ||
+      "Validation failed";
+    error = { message, statusCode: 400 };
+  }
+
+  if (err.name === "SequelizeForeignKeyConstraintError") {
+    error = {
+      message: "Operation violates a related-record constraint",
+      statusCode: 409,
+    };
+  }
+
   res.status(error.statusCode || 500).json({
     success: false,
     message: error.message || "Server Error",

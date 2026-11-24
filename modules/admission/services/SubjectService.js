@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import {
   Subject,
   Teacher,
@@ -10,8 +11,10 @@ import {
   countBySchool,
   createWithSchool,
   updateByIdAndSchool,
+  updateByCustomIdAndSchool,
   deleteByIdAndSchool,
   findByIdentifier,
+  findByIdentifierAndSchool,
 } from "../dbCommands/genericDbCommands.js";
 import { withTransaction } from "@school-management/backend-core/utils/transactionHelper.js";
 
@@ -53,24 +56,29 @@ class SubjectService {
    * @returns {Object|null} Subject data with relationships
    */
   async getSubjectById(subjectId, schoolId) {
-    return await findByIdAndSchool(Subject, subjectId, schoolId, {
+    return await findByIdentifierAndSchool(
+      Subject,
+      subjectId,
+      schoolId,
+      "subjectId",
+      {
       include: [
         {
           model: Teacher,
           as: "teachers",
-          attributes: ["teacher_id", "department"],
+          attributes: ["teacherId", "department"],
           include: [
             {
               model: User,
               as: "user",
-              attributes: ["first_name", "last_name", "email"],
+              attributes: ["firstName", "lastName", "email"],
             },
           ],
         },
         {
           model: Class,
           as: "classes",
-          attributes: ["class_name", "grade", "section"],
+          attributes: ["classId", "className", "grade", "section"],
         },
       ],
     });
@@ -83,34 +91,31 @@ class SubjectService {
    * @returns {Object} Created subject data
    */
   async createSubject(subjectData, schoolId) {
-    const { subjectName, subjectCode, description, department, credits, type } =
+    const { subjectName, subjectCode, description, department, credits, syllabus } =
       subjectData;
 
-    // Check if subject code already exists in this school
     const existingSubject = await findAllBySchool(Subject, schoolId, {
-      subject_code: subjectCode,
-      is_active: true,
+      subjectCode,
+      isActive: true,
     });
 
     if (existingSubject.length > 0) {
       throw new Error("Subject code already exists in this school");
     }
 
-    // Create subject
     const subject = await createWithSchool(
       Subject,
       {
-        subject_name: subjectName,
-        subject_code: subjectCode,
+        subjectName,
+        subjectCode,
         description,
         department,
         credits,
-        type,
+        syllabus,
       },
-      schoolId
+      schoolId,
     );
 
-    // Return subject with associations
     return await this.getSubjectById(subject.id, schoolId);
   }
 
@@ -122,25 +127,25 @@ class SubjectService {
    * @returns {Object} Updated subject data
    */
   async updateSubject(subjectId, updateData, schoolId) {
-    // Check if subject exists
-    const existingSubject = await findByIdAndSchool(
+    // Check if subject exists (accepts the custom subjectId, school-scoped)
+    const existingSubject = await findByIdentifierAndSchool(
       Subject,
       subjectId,
-      schoolId
+      schoolId,
+      "subjectId"
     );
     if (!existingSubject) {
       throw new Error("Subject not found");
     }
 
-    // Check if updating subject code would create conflict
     if (
       updateData.subjectCode &&
-      updateData.subjectCode !== existingSubject.subject_code
+      updateData.subjectCode !== existingSubject.subjectCode
     ) {
       const codeExists = await findAllBySchool(Subject, schoolId, {
-        subject_code: updateData.subjectCode,
-        is_active: true,
-        id: { $ne: subjectId }, // Exclude current subject
+        subjectCode: updateData.subjectCode,
+        isActive: true,
+        subjectId: { [Op.ne]: subjectId },
       });
 
       if (codeExists.length > 0) {
@@ -148,14 +153,13 @@ class SubjectService {
       }
     }
 
-    // Prepare update data
     const updatePayload = {
-      subject_name: updateData.subjectName,
-      subject_code: updateData.subjectCode,
+      subjectName: updateData.subjectName,
+      subjectCode: updateData.subjectCode,
       description: updateData.description,
       department: updateData.department,
       credits: updateData.credits,
-      type: updateData.type,
+      syllabus: updateData.syllabus,
     };
 
     // Remove undefined fields
@@ -163,11 +167,12 @@ class SubjectService {
       (key) => updatePayload[key] === undefined && delete updatePayload[key]
     );
 
-    const updateResult = await updateByIdAndSchool(
+    const updateResult = await updateByCustomIdAndSchool(
       Subject,
-      subjectId,
       updatePayload,
-      schoolId
+      subjectId,
+      schoolId,
+      "subjectId"
     );
 
     if (updateResult[0] === 0) {
@@ -185,11 +190,12 @@ class SubjectService {
    * @returns {boolean} Success status
    */
   async deleteSubject(subjectId, schoolId) {
-    // Check if subject exists
-    const existingSubject = await findByIdAndSchool(
+    // Check if subject exists (accepts the custom subjectId, school-scoped)
+    const existingSubject = await findByIdentifierAndSchool(
       Subject,
       subjectId,
-      schoolId
+      schoolId,
+      "subjectId"
     );
     if (!existingSubject) {
       throw new Error("Subject not found");
@@ -204,10 +210,12 @@ class SubjectService {
     }
 
     // Soft delete
-    const deleteResult = await deleteByIdAndSchool(
+    const deleteResult = await updateByCustomIdAndSchool(
       Subject,
+      { isActive: false },
       subjectId,
-      schoolId
+      schoolId,
+      "subjectId"
     );
 
     if (deleteResult[0] === 0) {

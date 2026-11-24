@@ -1,95 +1,112 @@
-export const buildTeacherResponse = (teacher) => {
-  if (!teacher) {
+// Teacher rows reach this formatter from two different query paths: Sequelize
+// instances (camelCase attributes) and raw/aliased rows (snake_case columns).
+// Read whichever form is present so both the list and detail endpoints work.
+const pick = (obj, camelKey, snakeKey) => {
+  if (!obj) return null;
+  if (obj[camelKey] !== undefined && obj[camelKey] !== null) {
+    return obj[camelKey];
+  }
+  if (obj[snakeKey] !== undefined) return obj[snakeKey];
+  return null;
+};
+
+const toBool = (value) => (value === undefined ? null : Boolean(value));
+
+const normalizeAddress = (address) => {
+  if (address == null) return null;
+  if (typeof address === "string") return address;
+  if (typeof address === "object") {
+    const parts = [
+      address.street,
+      address.city,
+      address.state,
+      address.postalCode || address.zip,
+    ].filter(Boolean);
+    if (parts.length) return parts.join(", ");
     return null;
   }
-  teacher = JSON.parse(JSON.stringify(teacher));
+  return null;
+};
+
+export const buildTeacherResponse = (teacher) => {
+  if (!teacher) return null;
+
+  const data = JSON.parse(JSON.stringify(teacher));
+  const user = data.user || {};
+
+  const firstName = pick(user, "firstName", "first_name");
+  const lastName = pick(user, "lastName", "last_name");
+  const fullName = `${firstName || ""} ${lastName || ""}`.trim();
+
   return {
-    teacherId: teacher.teacher_id,
+    teacherId: pick(data, "teacherId", "teacher_id"),
     personalInfo: {
-      firstName: teacher.user?.first_name || null,
-      lastName: teacher.user?.last_name || null,
-      email: teacher.user?.email || null,
+      firstName,
+      lastName,
+      name: fullName || null,
+      email: pick(user, "email", "email"),
+      phone: pick(data, "phone", "phone"),
+      address: normalizeAddress(pick(data, "address", "address")),
     },
     professionalInfo: {
-      department: teacher.department,
-      qualification: teacher.qualification,
-      experience: teacher.experience,
-      dateOfJoining: teacher.date_of_joining,
-      salary: teacher.salary,
+      department: pick(data, "department", "department"),
+      qualification: pick(data, "qualification", "qualification"),
+      experience: pick(data, "experience", "experience"),
+      dateOfJoining: pick(data, "dateOfJoining", "date_of_joining"),
+      salary: pick(data, "salary", "salary"),
     },
     assignments: {
-      subjects:
-        teacher.subjects?.map((subject) => ({
-          subjectName: subject.subject_name,
-          subjectCode: subject.subject_code,
-          department: subject.department || null,
-        })) || [],
-      managedClasses:
-        teacher.managedClasses?.map((cls) => ({
-          className: cls.class_name,
-          grade: cls.grade,
-          section: cls.section,
-          room: cls.room || null,
-        })) || [],
+      subjects: (data.subjects || []).map((subject) => ({
+        subjectId: pick(subject, "subjectId", "subject_id"),
+        subjectName: pick(subject, "subjectName", "subject_name"),
+        subjectCode: pick(subject, "subjectCode", "subject_code"),
+        department: subject.department || null,
+      })),
+      managedClasses: (data.managedClasses || []).map((cls) => ({
+        classId: pick(cls, "classId", "class_id"),
+        className: pick(cls, "className", "class_name"),
+        grade: cls.grade,
+        section: cls.section,
+        room: cls.room || null,
+      })),
     },
     status: {
-      isActive: teacher.is_active,
+      isActive: toBool(pick(data, "isActive", "is_active")),
     },
     metadata: {
-      createdAt: teacher.created_at,
-      updatedAt: teacher.updated_at,
+      createdAt: pick(data, "createdAt", "created_at"),
+      updatedAt: pick(data, "updatedAt", "updated_at"),
     },
   };
 };
 
-/**
- * Build teacher list response for multiple teachers
- * @param {Array} teachers - Array of raw teacher data from database
- * @returns {Array} - Array of formatted teacher response objects
- */
 export const buildTeachersListResponse = (teachers) => {
-  if (!Array.isArray(teachers)) {
-    return [];
-  }
-
+  if (!Array.isArray(teachers)) return [];
   return teachers.map((teacher) => buildTeacherResponse(teacher));
 };
 
-/**
- * Build teacher summary response (minimal data for lists)
- * @param {Object} teacher - Raw teacher data from database
- * @returns {Object} - Formatted teacher summary object
- */
 export const buildTeacherSummaryResponse = (teacher) => {
-  if (!teacher) {
-    return null;
-  }
+  if (!teacher) return null;
+
+  const user = teacher.user || {};
+  const firstName = pick(user, "firstName", "first_name");
+  const lastName = pick(user, "lastName", "last_name");
 
   return {
-    teacherId: teacher.teacher_id,
-    name: `${teacher.user?.first_name || ""} ${
-      teacher.user?.last_name || ""
-    }`.trim(),
-    email: teacher.user?.email || null,
-    department: teacher.department,
-    experience: teacher.experience,
-    subjectCount: teacher.subjects?.length || 0,
-    classCount: teacher.managedClasses?.length || 0,
+    teacherId: pick(teacher, "teacherId", "teacher_id"),
+    name: `${firstName || ""} ${lastName || ""}`.trim(),
+    email: user.email || null,
+    department: pick(teacher, "department", "department"),
+    experience: pick(teacher, "experience", "experience"),
+    subjectCount: (teacher.subjects || []).length,
+    classCount: (teacher.managedClasses || []).length,
     status: {
-      isActive: teacher.is_active,
+      isActive: toBool(pick(teacher, "isActive", "is_active")),
     },
   };
 };
 
-/**
- * Build teacher summaries list response for multiple teachers (minimal data)
- * @param {Array} teachers - Array of raw teacher data from database
- * @returns {Array} - Array of formatted teacher summary objects
- */
 export const buildTeachersSummariesResponse = (teachers) => {
-  if (!Array.isArray(teachers)) {
-    return [];
-  }
-
+  if (!Array.isArray(teachers)) return [];
   return teachers.map((teacher) => buildTeacherSummaryResponse(teacher));
 };

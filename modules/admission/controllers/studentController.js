@@ -265,12 +265,54 @@ const getStudentStatusOptions = async (req, res) => {
   }
 };
 
+// @desc    Reset a student's password to a temporary password
+// @route   POST /api/students/:id/reset-password
+// @access  Private (Admin)
+const resetStudentPassword = async (req, res) => {
+  try {
+    const schoolId = req.user.schoolId;
+    if (!schoolId) {
+      return res.status(400).json({
+        success: false,
+        message: "School ID is required",
+      });
+    }
+
+    const result = await StudentService.resetStudentPassword(
+      req.params.id,
+      schoolId,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Reset student password error:", error);
+    if (
+      error.message === "Student not found" ||
+      error.message === "Student user not found"
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: "Server error while resetting password",
+    });
+  }
+};
+
 export {
   getAllStudents,
   getStudentById,
   createStudent,
   updateStudent,
   deleteStudent,
+  resetStudentPassword,
   searchStudents,
   getStudentStatusOptions,
 };

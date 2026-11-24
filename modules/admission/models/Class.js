@@ -29,7 +29,6 @@ const Class = sequelize.define(
     className: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
     },
     schoolId: {
       type: DataTypes.STRING(50),
@@ -66,6 +65,13 @@ const Class = sequelize.define(
     freezeTableName: true,
     timestamps: true,
     underscored: true, // This makes Sequelize use snake_case for timestamps
+    indexes: [
+      {
+        unique: true,
+        fields: ["school_id", "class_name"],
+        name: "class_school_class_name_unique",
+      },
+    ],
   },
 );
 

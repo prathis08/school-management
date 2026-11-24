@@ -130,6 +130,7 @@ router.get(
   "/get-payment-history/:studentId",
   auth,
   populateUserHeaders,
+  authorize(ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.TEACHER),
   getPaymentHistory,
 );
 

@@ -89,8 +89,9 @@ class UserDataService {
         throw new Error("Current password is incorrect");
       }
 
-      // Update password (will be hashed by model hook)
-      await user.update({ password: newPassword });
+      // Update password (will be hashed by model hook) and clear the
+      // must-change-password flag.
+      await user.update({ password: newPassword, mustChangePassword: false });
 
       return true;
     } catch (error) {
